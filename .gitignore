@@ -9,6 +9,8 @@ package-lock.json
 /dist
 /build
 coverage
+/src/generated
+*.tsbuildinfo
 
 # Docker artifacts
 Dockerfile*

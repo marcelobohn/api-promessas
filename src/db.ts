@@ -1,7 +1,8 @@
-require('dotenv').config();
-const { PrismaClient } = require('@prisma/client');
+import dotenv from 'dotenv';
+import { PrismaClient } from '@prisma/client';
 
-// Permite manter compatibilidade com POSTGRES_* quando DATABASE_URL não for informado
+dotenv.config();
+
 if (!process.env.DATABASE_URL) {
   const user = process.env.POSTGRES_USER || 'postgres';
   const password = encodeURIComponent(process.env.POSTGRES_PASSWORD || 'your_password');
@@ -13,4 +14,4 @@ if (!process.env.DATABASE_URL) {
 
 const prisma = new PrismaClient();
 
-module.exports = prisma;
+export default prisma;

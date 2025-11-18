@@ -1,0 +1,128 @@
+openapi: 3.0.3
+info:
+  title: API de Promessas de Campanha
+  version: 1.0.0
+  description: |
+    API para cadastro e consulta de candidatos e suas promessas de campanha.
+servers:
+  - url: http://localhost:3000
+paths:
+  /:
+    get:
+      summary: Ping da API
+      responses:
+        '200':
+          description: API ativa
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: API de Promessas de Campanha no ar!
+  /api/v1/candidates:
+    get:
+      summary: Lista todos os candidatos
+      responses:
+        '200':
+          description: Lista ordenada de candidatos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Candidate'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      summary: Cria um novo candidato
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCandidateInput'
+      responses:
+        '201':
+          description: Candidato criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Candidate'
+        '400':
+          description: Requisição inválida (campos obrigatórios ausentes)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+components:
+  schemas:
+    Candidate:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Maria Silva
+        political_party:
+          type: string
+          nullable: true
+          example: XYZ
+        election_year:
+          type: integer
+          nullable: true
+          example: 2024
+        office:
+          type: string
+          example: Prefeita
+        created_at:
+          type: string
+          format: date-time
+          example: '2024-01-01T00:00:00.000Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2024-01-02T00:00:00.000Z'
+      required:
+        - id
+        - name
+        - office
+        - created_at
+        - updated_at
+    CreateCandidateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          example: João Souza
+        political_party:
+          type: string
+          nullable: true
+          example: ABC
+        election_year:
+          type: integer
+          nullable: true
+          example: 2022
+        office:
+          type: string
+          example: Vereador
+      required:
+        - name
+        - office
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Erro interno do servidor
+      required:
+        - error
+  responses:
+    InternalError:
+      description: Erro interno inesperado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

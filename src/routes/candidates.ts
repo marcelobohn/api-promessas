@@ -1,7 +1,25 @@
-const express = require('express');
-const prisma = require('../db');
+import { Router, Request, Response } from 'express';
+import { Candidate } from '@prisma/client';
+import prisma from '../db';
 
-const formatCandidate = (candidate) => ({
+interface CandidateRequestBody {
+  name?: string;
+  political_party?: string | null;
+  election_year?: number | null;
+  office?: string;
+}
+
+interface CandidateResponse {
+  id: number;
+  name: string;
+  political_party: string | null;
+  election_year: number | null;
+  office: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+const formatCandidate = (candidate: Candidate): CandidateResponse => ({
   id: candidate.id,
   name: candidate.name,
   political_party: candidate.politicalParty,
@@ -11,10 +29,9 @@ const formatCandidate = (candidate) => ({
   updated_at: candidate.updatedAt,
 });
 
-const router = express.Router();
+const router = Router();
 
-// Rota para LISTAR todos os candidatos (GET /api/v1/candidates)
-router.get('/', async (req, res) => {
+router.get('/', async (_req: Request, res: Response) => {
   try {
     const candidates = await prisma.candidate.findMany({
       orderBy: { id: 'asc' },
@@ -26,11 +43,9 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Rota para CRIAR um novo candidato (POST /api/v1/candidates)
-router.post('/', async (req, res) => {
+router.post('/', async (req: Request<unknown, unknown, CandidateRequestBody>, res: Response) => {
   const { name, political_party, election_year, office } = req.body;
 
-  // Validação simples
   if (!name || !office) {
     return res.status(400).json({ error: 'Nome e cargo são campos obrigatórios.' });
   }
@@ -40,7 +55,7 @@ router.post('/', async (req, res) => {
       data: {
         name,
         politicalParty: political_party || null,
-        electionYear: election_year ?? null,
+        electionYear: typeof election_year === 'number' ? election_year : null,
         office,
       },
     });
@@ -52,4 +67,4 @@ router.post('/', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

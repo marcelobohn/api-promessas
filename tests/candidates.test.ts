@@ -1,15 +1,21 @@
-const request = require('supertest');
-const express = require('express');
+import request from 'supertest';
+import express from 'express';
+import candidateRoutes from '../src/routes/candidates';
+import prisma from '../src/db';
 
-jest.mock('../db', () => ({
+jest.mock('../src/db', () => ({
   candidate: {
     findMany: jest.fn(),
     create: jest.fn(),
   },
 }));
 
-const prisma = require('../db');
-const candidateRoutes = require('../routes/candidates');
+const prismaMock = prisma as unknown as {
+  candidate: {
+    findMany: jest.Mock;
+    create: jest.Mock;
+  };
+};
 
 const buildApp = () => {
   const app = express();
@@ -24,7 +30,7 @@ describe('Candidate routes', () => {
   });
 
   test('GET /api/v1/candidates returns list ordered by id', async () => {
-    prisma.candidate.findMany.mockResolvedValue([
+    prismaMock.candidate.findMany.mockResolvedValue([
       {
         id: 1,
         name: 'Alice',
@@ -51,7 +57,7 @@ describe('Candidate routes', () => {
         updated_at: '2024-01-02T00:00:00.000Z',
       },
     ]);
-    expect(prisma.candidate.findMany).toHaveBeenCalledWith({
+    expect(prismaMock.candidate.findMany).toHaveBeenCalledWith({
       orderBy: { id: 'asc' },
     });
   });
@@ -64,7 +70,7 @@ describe('Candidate routes', () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'Nome e cargo são campos obrigatórios.' });
-    expect(prisma.candidate.create).not.toHaveBeenCalled();
+    expect(prismaMock.candidate.create).not.toHaveBeenCalled();
   });
 
   test('POST /api/v1/candidates creates a candidate', async () => {
@@ -78,7 +84,7 @@ describe('Candidate routes', () => {
       updatedAt: new Date('2024-02-01T00:00:00Z'),
     };
 
-    prisma.candidate.create.mockResolvedValue(createdCandidate);
+    prismaMock.candidate.create.mockResolvedValue(createdCandidate);
 
     const app = buildApp();
     const response = await request(app)
@@ -86,7 +92,7 @@ describe('Candidate routes', () => {
       .send({ name: 'Bob', office: 'Vereador' });
 
     expect(response.status).toBe(201);
-    expect(prisma.candidate.create).toHaveBeenCalledWith({
+    expect(prismaMock.candidate.create).toHaveBeenCalledWith({
       data: {
         name: 'Bob',
         politicalParty: null,
@@ -106,7 +112,7 @@ describe('Candidate routes', () => {
   });
 
   test('GET /api/v1/candidates handles errors', async () => {
-    prisma.candidate.findMany.mockRejectedValue(new Error('db down'));
+    prismaMock.candidate.findMany.mockRejectedValue(new Error('db down'));
     const app = buildApp();
     const response = await request(app).get('/api/v1/candidates');
 

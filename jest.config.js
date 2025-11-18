@@ -1,7 +1,7 @@
 /** @type {import('jest').Config} */
 module.exports = {
+  preset: 'ts-jest',
   testEnvironment: 'node',
-  verbose: false,
-  collectCoverage: false,
   roots: ['<rootDir>/tests'],
+  moduleFileExtensions: ['ts', 'js', 'json'],
 };

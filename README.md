@@ -1,9 +1,9 @@
 # API de Promessas de Campanha
 
-API simples em Node.js/Express para cadastrar e consultar promessas de candidatos, usando Prisma + PostgreSQL como base de dados.
+API escrita em TypeScript (Node.js/Express) para cadastrar e consultar promessas de candidatos, usando Prisma + PostgreSQL como base de dados.
 
 ## Visão geral
-- **Stack:** Node.js, Express, Prisma ORM e PostgreSQL.
+- **Stack:** Node.js, TypeScript, Express, Prisma ORM e PostgreSQL.
 - **Persistência:** Prisma Client configurado via variáveis de ambiente (`DATABASE_URL` e POSTGRES_*).
 - **Rotas principais:**
   - `GET /` – ping da API.
@@ -28,8 +28,13 @@ API simples em Node.js/Express para cadastrar e consultar promessas de candidato
 3. Garanta que o banco tenha a tabela `candidates`:
    - Com PostgreSQL local: `npm run prisma:db:push` (usa `DATABASE_URL`).
    - Em Docker: `docker compose up -d` executará `db/init.sql` na primeira inicialização do volume.
-4. Execute em modo desenvolvimento (usa `nodemon` via `npm start`):
+4. Execute em modo desenvolvimento:
    ```bash
+   npm run dev
+   ```
+5. Para gerar artefatos em JavaScript (produção), rode:
+   ```bash
+   npm run build
    npm start
    ```
 > Sempre que alterar `prisma/schema.prisma`, rode `npm run prisma:generate` para atualizar o client.
@@ -40,6 +45,13 @@ Execute toda a suíte com:
 npm test
 ```
 Os testes usam Jest + Supertest e mockam o Prisma Client, portanto não precisam de banco em execução.
+
+## Documentação Swagger
+- Arquivo base: `swagger.yaml`.
+- Endpoint HTML: acesse `http://localhost:3000/docs` para visualizar o Swagger UI embutido.
+- Endpoint JSON: `http://localhost:3000/swagger.json`.
+- Gere tipos e clientes a partir do OpenAPI com `npm run openapi:generate` (usa `openapi-typescript-codegen` e escreve em `src/generated/`).
+- Também é possível abrir o arquivo manualmente em ferramentas como Swagger Editor/Insomnia/Postman.
 
 ## Variáveis de ambiente
 | Variável | Descrição | Default |
@@ -75,10 +87,11 @@ docker compose down -v
 │   └── init.sql           # Script SQL inicial (aplicado pelo Postgres do Docker)
 ├── prisma
 │   └── schema.prisma      # Definição dos modelos do Prisma
-├── routes
-│   └── candidates.js      # Rotas REST para candidatos
-├── server.js              # Entrada principal da API
-├── db.js                  # Instância do Prisma Client
+├── src
+│   ├── db.ts              # Instância do Prisma Client
+│   ├── routes
+│   │   └── candidates.ts  # Rotas REST para candidatos
+│   └── server.ts          # Entrada principal da API
 ├── Dockerfile             # Build da API em Node 20 Alpine
 ├── docker-compose.yml     # Orquestração da API + PostgreSQL
 ├── .env.example           # Template das variáveis de ambiente
