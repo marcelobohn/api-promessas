@@ -34,6 +34,13 @@ API simples em Node.js/Express para cadastrar e consultar promessas de candidato
    ```
 > Sempre que alterar `prisma/schema.prisma`, rode `npm run prisma:generate` para atualizar o client.
 
+## Testes
+Execute toda a suíte com:
+```bash
+npm test
+```
+Os testes usam Jest + Supertest e mockam o Prisma Client, portanto não precisam de banco em execução.
+
 ## Variáveis de ambiente
 | Variável | Descrição | Default |
 | -------- | --------- | ------- |
