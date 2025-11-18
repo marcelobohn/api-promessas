@@ -1,0 +1,78 @@
+# API de Promessas de Campanha
+
+API simples em Node.js/Express para cadastrar e consultar promessas de candidatos, usando PostgreSQL como base de dados.
+
+## Visão geral
+- **Stack:** Node.js, Express, PostgreSQL.
+- **Persistência:** `pg` com pool configurado via variáveis de ambiente.
+- **Rotas principais:**
+  - `GET /` – ping da API.
+  - `GET /api/v1/candidates` – lista todos os candidatos.
+  - `POST /api/v1/candidates` – cria um novo candidato (`name` e `office` obrigatórios; `political_party` e `election_year` opcionais).
+
+## Requisitos
+- Node.js 20+ e npm 10+ (para desenvolvimento local).
+- Banco PostgreSQL acessível com o schema `candidates` (criado via `db/init.sql`).
+- Opcional: Docker e Docker Compose (para subir API + banco rapidamente).
+
+## Configuração local
+1. Instale as dependências:
+   ```bash
+   npm install
+   ```
+2. Copie `.env.example` para `.env` e ajuste as variáveis:
+   ```bash
+   cp .env.example .env
+   # Edite POSTGRES_* conforme sua instância local
+   ```
+3. Garanta que o banco tenha a tabela `candidates` (execute `db/init.sql`).
+4. Execute em modo desenvolvimento (usa `nodemon` via `npm start`):
+   ```bash
+   npm start
+   ```
+
+## Variáveis de ambiente
+| Variável | Descrição | Default |
+| -------- | --------- | ------- |
+| `POSTGRES_USER` | Usuário do banco | `postgres` |
+| `POSTGRES_PASSWORD` | Senha do usuário | `your_password` |
+| `POSTGRES_DB` | Nome do banco | `promessas_db` |
+| `POSTGRES_HOST` | Host do PostgreSQL | `postgres` (Docker) / `localhost` (local) |
+| `POSTGRES_PORT` | Porta do banco | `5432` |
+| `APP_PORT` | Porta exposta pela API | `3000` |
+
+## Uso com Docker Compose
+1. Ajuste `.env` com as credenciais desejadas.
+2. Suba os serviços:
+   ```bash
+   docker compose up -d --build
+   ```
+   - Serviço `postgres` expõe `5432` e executa `db/init.sql` na primeira inicialização.
+   - Serviço `api` é construído a partir do `Dockerfile` e lê as mesmas variáveis do `.env`.
+3. Acesse `http://localhost:3000` (ou a porta definida em `APP_PORT`).
+
+Caso precise reinicializar o banco (por exemplo, para reaplicar `db/init.sql` ou alterar credenciais), use:
+```bash
+docker compose down -v
+```
+> **Atenção:** o comando acima remove os dados persistidos no volume `pgdata`.
+
+## Estrutura de diretórios
+```
+.
+├── db
+│   └── init.sql           # Script para criar tabela candidates e trigger
+├── routes
+│   └── candidates.js      # Rotas REST para candidatos
+├── server.js              # Entrada principal da API
+├── db.js                  # Configuração do pool do PostgreSQL
+├── Dockerfile             # Build da API em Node 20 Alpine
+├── docker-compose.yml     # Orquestração da API + PostgreSQL
+├── .env.example           # Template das variáveis de ambiente
+└── README.md
+```
+
+## Próximos passos sugeridos
+- Adicionar validação/sanitização mais robusta das entradas.
+- Criar testes automatizados para os endpoints.
+- Expandir o schema (ex.: status da promessa, métricas de cumprimento).
