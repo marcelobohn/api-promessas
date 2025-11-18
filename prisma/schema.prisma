@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Candidate {
+  id              Int       @id @default(autoincrement())
+  name            String
+  politicalParty  String?   @map("political_party")
+  electionYear    Int?      @map("election_year")
+  office          String
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("candidates")
+}

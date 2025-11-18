@@ -1,10 +1,10 @@
 # API de Promessas de Campanha
 
-API simples em Node.js/Express para cadastrar e consultar promessas de candidatos, usando PostgreSQL como base de dados.
+API simples em Node.js/Express para cadastrar e consultar promessas de candidatos, usando Prisma + PostgreSQL como base de dados.
 
 ## Visão geral
-- **Stack:** Node.js, Express, PostgreSQL.
-- **Persistência:** `pg` com pool configurado via variáveis de ambiente.
+- **Stack:** Node.js, Express, Prisma ORM e PostgreSQL.
+- **Persistência:** Prisma Client configurado via variáveis de ambiente (`DATABASE_URL` e POSTGRES_*).
 - **Rotas principais:**
   - `GET /` – ping da API.
   - `GET /api/v1/candidates` – lista todos os candidatos.
@@ -23,13 +23,16 @@ API simples em Node.js/Express para cadastrar e consultar promessas de candidato
 2. Copie `.env.example` para `.env` e ajuste as variáveis:
    ```bash
    cp .env.example .env
-   # Edite POSTGRES_* conforme sua instância local
+   # Edite POSTGRES_* e DATABASE_URL conforme sua instância local
    ```
-3. Garanta que o banco tenha a tabela `candidates` (execute `db/init.sql`).
+3. Garanta que o banco tenha a tabela `candidates`:
+   - Com PostgreSQL local: `npm run prisma:db:push` (usa `DATABASE_URL`).
+   - Em Docker: `docker compose up -d` executará `db/init.sql` na primeira inicialização do volume.
 4. Execute em modo desenvolvimento (usa `nodemon` via `npm start`):
    ```bash
    npm start
    ```
+> Sempre que alterar `prisma/schema.prisma`, rode `npm run prisma:generate` para atualizar o client.
 
 ## Variáveis de ambiente
 | Variável | Descrição | Default |
@@ -40,6 +43,7 @@ API simples em Node.js/Express para cadastrar e consultar promessas de candidato
 | `POSTGRES_HOST` | Host do PostgreSQL | `postgres` (Docker) / `localhost` (local) |
 | `POSTGRES_PORT` | Porta do banco | `5432` |
 | `APP_PORT` | Porta exposta pela API | `3000` |
+| `DATABASE_URL` | String de conexão usada pelo Prisma | `postgresql://postgres:your_password@postgres:5432/promessas_db?schema=public` |
 
 ## Uso com Docker Compose
 1. Ajuste `.env` com as credenciais desejadas.
@@ -61,11 +65,13 @@ docker compose down -v
 ```
 .
 ├── db
-│   └── init.sql           # Script para criar tabela candidates e trigger
+│   └── init.sql           # Script SQL inicial (aplicado pelo Postgres do Docker)
+├── prisma
+│   └── schema.prisma      # Definição dos modelos do Prisma
 ├── routes
 │   └── candidates.js      # Rotas REST para candidatos
 ├── server.js              # Entrada principal da API
-├── db.js                  # Configuração do pool do PostgreSQL
+├── db.js                  # Instância do Prisma Client
 ├── Dockerfile             # Build da API em Node 20 Alpine
 ├── docker-compose.yml     # Orquestração da API + PostgreSQL
 ├── .env.example           # Template das variáveis de ambiente

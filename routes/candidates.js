@@ -1,13 +1,25 @@
 const express = require('express');
-const db = require('../db');
+const prisma = require('../db');
+
+const formatCandidate = (candidate) => ({
+  id: candidate.id,
+  name: candidate.name,
+  political_party: candidate.politicalParty,
+  election_year: candidate.electionYear,
+  office: candidate.office,
+  created_at: candidate.createdAt,
+  updated_at: candidate.updatedAt,
+});
 
 const router = express.Router();
 
 // Rota para LISTAR todos os candidatos (GET /api/v1/candidates)
 router.get('/', async (req, res) => {
   try {
-    const { rows } = await db.query('SELECT * FROM candidates ORDER BY id ASC');
-    res.status(200).json(rows);
+    const candidates = await prisma.candidate.findMany({
+      orderBy: { id: 'asc' },
+    });
+    res.status(200).json(candidates.map(formatCandidate));
   } catch (error) {
     console.error('Erro ao buscar candidatos:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -24,15 +36,16 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const queryText = `
-      INSERT INTO candidates (name, political_party, election_year, office)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *;
-    `;
-    const values = [name, political_party, election_year, office];
-    const { rows } = await db.query(queryText, values);
-    
-    res.status(201).json(rows[0]);
+    const candidate = await prisma.candidate.create({
+      data: {
+        name,
+        politicalParty: political_party || null,
+        electionYear: election_year ?? null,
+        office,
+      },
+    });
+
+    res.status(201).json(formatCandidate(candidate));
   } catch (error) {
     console.error('Erro ao criar candidato:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -40,4 +53,3 @@ router.post('/', async (req, res) => {
 });
 
 module.exports = router;
-
