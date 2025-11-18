@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { Candidate } from '@prisma/client';
 import prisma from '../db';
+import { formatCandidate, formatPromise } from '../utils/formatters';
 
 interface CandidateRequestBody {
   name?: string;
@@ -9,25 +9,12 @@ interface CandidateRequestBody {
   office?: string;
 }
 
-interface CandidateResponse {
-  id: number;
-  name: string;
-  political_party: string | null;
-  election_year: number | null;
-  office: string;
-  created_at: Date;
-  updated_at: Date;
+interface CreatePromiseRequestBody {
+  title?: string;
+  description?: string | null;
+  status?: string;
+  progress?: number;
 }
-
-const formatCandidate = (candidate: Candidate): CandidateResponse => ({
-  id: candidate.id,
-  name: candidate.name,
-  political_party: candidate.politicalParty,
-  election_year: candidate.electionYear,
-  office: candidate.office,
-  created_at: candidate.createdAt,
-  updated_at: candidate.updatedAt,
-});
 
 const router = Router();
 
@@ -66,5 +53,94 @@ router.post('/', async (req: Request<unknown, unknown, CandidateRequestBody>, re
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
+
+const ensureCandidateExists = async (candidateId: number) => {
+  return prisma.candidate.findUnique({
+    where: { id: candidateId },
+    select: { id: true },
+  });
+};
+
+const parseProgress = (progress: number | undefined) => {
+  if (typeof progress === 'undefined' || progress === null) {
+    return 0;
+  }
+  if (progress < 0 || progress > 100) {
+    throw new Error('O progresso deve estar entre 0 e 100.');
+  }
+  return Math.round(progress);
+};
+
+router.get('/:candidateId/promises', async (req: Request, res: Response) => {
+  const candidateId = Number(req.params.candidateId);
+
+  if (Number.isNaN(candidateId)) {
+    return res.status(400).json({ error: 'ID do candidato inválido.' });
+  }
+
+  try {
+    const exists = await ensureCandidateExists(candidateId);
+    if (!exists) {
+      return res.status(404).json({ error: 'Candidato não encontrado.' });
+    }
+
+    const promises = await prisma.promise.findMany({
+      where: { candidateId },
+      orderBy: { createdAt: 'desc' },
+      include: { comments: { orderBy: { createdAt: 'desc' } } },
+    });
+
+    res.status(200).json(promises.map(formatPromise));
+  } catch (error) {
+    console.error('Erro ao buscar promessas:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+router.post(
+  '/:candidateId/promises',
+  async (req: Request<{ candidateId: string }, unknown, CreatePromiseRequestBody>, res: Response) => {
+    const candidateId = Number(req.params.candidateId);
+    const { title, description, status, progress } = req.body;
+
+    if (Number.isNaN(candidateId)) {
+      return res.status(400).json({ error: 'ID do candidato inválido.' });
+    }
+
+    if (!title) {
+      return res.status(400).json({ error: 'Título da promessa é obrigatório.' });
+    }
+
+    let progressValue: number;
+    try {
+      progressValue = parseProgress(progress);
+    } catch (error) {
+      return res.status(400).json({ error: (error as Error).message });
+    }
+
+    try {
+      const exists = await ensureCandidateExists(candidateId);
+      if (!exists) {
+        return res.status(404).json({ error: 'Candidato não encontrado.' });
+      }
+
+      const promise = await prisma.promise.create({
+        data: {
+          title,
+          description: description ?? null,
+          status: status || 'NOT_STARTED',
+          progress: progressValue,
+          candidateId,
+        },
+        include: { comments: { orderBy: { createdAt: 'desc' } } },
+      });
+
+      res.status(201).json(formatPromise(promise));
+    } catch (error) {
+      console.error('Erro ao criar promessa:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  }
+);
 
 export default router;

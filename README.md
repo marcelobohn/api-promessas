@@ -9,6 +9,10 @@ API escrita em TypeScript (Node.js/Express) para cadastrar e consultar promessas
   - `GET /` – ping da API.
   - `GET /api/v1/candidates` – lista todos os candidatos.
   - `POST /api/v1/candidates` – cria um novo candidato (`name` e `office` obrigatórios; `political_party` e `election_year` opcionais).
+  - `GET /api/v1/candidates/:candidateId/promises` – lista promessas de um candidato.
+  - `POST /api/v1/candidates/:candidateId/promises` – cadastra uma promessa com status e percentual.
+  - `PATCH /api/v1/promises/:promiseId` – atualiza status, progresso ou descrição.
+  - `POST /api/v1/promises/:promiseId/comments` – adiciona comentários de andamento.
 
 ## Requisitos
 - Node.js 20+ e npm 10+ (para desenvolvimento local).
@@ -53,6 +57,11 @@ Os testes usam Jest + Supertest e mockam o Prisma Client, portanto não precisam
 - Gere tipos e clientes a partir do OpenAPI com `npm run openapi:generate` (usa `openapi-typescript-codegen` e escreve em `src/generated/`).
 - Também é possível abrir o arquivo manualmente em ferramentas como Swagger Editor/Insomnia/Postman.
 
+## Gerenciamento de promessas
+- **Status:** campo textual com valor padrão `NOT_STARTED`. Pode receber valores como `IN_PROGRESS`, `COMPLETED` ou qualquer outra situação necessária pela equipe.
+- **Progresso:** inteiro de 0 a 100 indicando percentual concluído.
+- **Comentários:** use `POST /api/v1/promises/:promiseId/comments` para registrar atualizações de andamento (ex.: reuniões, entregas parciais, blockers).
+
 ## Variáveis de ambiente
 | Variável | Descrição | Default |
 | -------- | --------- | ------- |
@@ -86,11 +95,14 @@ docker compose down -v
 ├── db
 │   └── init.sql           # Script SQL inicial (aplicado pelo Postgres do Docker)
 ├── prisma
-│   └── schema.prisma      # Definição dos modelos do Prisma
+│   └── schema.prisma      # Definição dos modelos do Prisma (candidatos, promessas, comentários)
 ├── src
 │   ├── db.ts              # Instância do Prisma Client
 │   ├── routes
-│   │   └── candidates.ts  # Rotas REST para candidatos
+│   │   ├── candidates.ts  # Rotas de candidatos + promessas por candidato
+│   │   └── promises.ts    # Rotas de atualização/comentários das promessas
+│   ├── utils
+│   │   └── formatters.ts  # Converte entidades Prisma para o contrato da API
 │   └── server.ts          # Entrada principal da API
 ├── Dockerfile             # Build da API em Node 20 Alpine
 ├── docker-compose.yml     # Orquestração da API + PostgreSQL

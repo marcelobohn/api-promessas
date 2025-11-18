@@ -55,6 +55,145 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
           $ref: '#/components/responses/InternalError'
+  /api/v1/candidates/{candidateId}/promises:
+    get:
+      summary: Lista promessas de um candidato
+      parameters:
+        - in: path
+          name: candidateId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de promessas do candidato
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Promise'
+        '400':
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Candidato não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      summary: Cria uma nova promessa para o candidato
+      parameters:
+        - in: path
+          name: candidateId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePromiseInput'
+      responses:
+        '201':
+          description: Promessa criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Promise'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Candidato não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/promises/{promiseId}:
+    patch:
+      summary: Atualiza status/andamento de uma promessa
+      parameters:
+        - in: path
+          name: promiseId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePromiseInput'
+      responses:
+        '200':
+          description: Promessa atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Promise'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Promessa não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/promises/{promiseId}/comments:
+    post:
+      summary: Adiciona um comentário ao andamento
+      parameters:
+        - in: path
+          name: promiseId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePromiseCommentInput'
+      responses:
+        '201':
+          description: Comentário criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromiseComment'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Promessa não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
 components:
   schemas:
     Candidate:
@@ -91,6 +230,61 @@ components:
         - office
         - created_at
         - updated_at
+    Promise:
+      type: object
+      properties:
+        id:
+          type: integer
+        candidate_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          example: IN_PROGRESS
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromiseComment'
+      required:
+        - id
+        - candidate_id
+        - title
+        - status
+        - progress
+        - created_at
+        - updated_at
+        - comments
+    PromiseComment:
+      type: object
+      properties:
+        id:
+          type: integer
+        promise_id:
+          type: integer
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - promise_id
+        - content
+        - created_at
     CreateCandidateInput:
       type: object
       properties:
@@ -111,6 +305,44 @@ components:
       required:
         - name
         - office
+    CreatePromiseInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          description: "Status textual (ex.: NOT_STARTED, IN_PROGRESS, COMPLETED)"
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+      required:
+        - title
+    UpdatePromiseInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+    CreatePromiseCommentInput:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
     ErrorResponse:
       type: object
       properties:

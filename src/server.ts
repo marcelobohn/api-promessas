@@ -5,6 +5,7 @@ import fs from 'fs';
 import YAML from 'yaml';
 import swaggerUi from 'swagger-ui-express';
 import candidateRoutes from './routes/candidates';
+import promiseRoutes from './routes/promises';
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.get('/', (_req, res) => {
 });
 
 app.use('/api/v1/candidates', candidateRoutes);
+app.use('/api/v1/promises', promiseRoutes);
 
 app.listen(port, () => {
   console.log(`Servidor da API de Promessas rodando na porta ${port}`);

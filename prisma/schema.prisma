@@ -15,6 +15,32 @@ model Candidate {
   office          String
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
+  promises        Promise[]
 
   @@map("candidates")
+}
+
+model Promise {
+  id          Int               @id @default(autoincrement())
+  title       String
+  description String?
+  status      String            @default("NOT_STARTED")
+  progress    Int               @default(0)
+  candidateId Int               @map("candidate_id")
+  candidate   Candidate         @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  comments    PromiseComment[]
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  @@map("promises")
+}
+
+model PromiseComment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  promiseId Int      @map("promise_id")
+  promise   Promise  @relation(fields: [promiseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("promise_comments")
 }
