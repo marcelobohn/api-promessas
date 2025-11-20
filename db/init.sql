@@ -3,6 +3,9 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ElectionType') THEN
     CREATE TYPE "ElectionType" AS ENUM ('FEDERAL_ESTADUAL', 'MUNICIPAL');
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PromiseStatus') THEN
+    CREATE TYPE "PromiseStatus" AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED');
+  END IF;
 END
 $$;
 
@@ -49,7 +52,7 @@ CREATE TABLE IF NOT EXISTS promises (
   candidate_id INT NOT NULL REFERENCES candidates(id) ON DELETE CASCADE,
   title VARCHAR(255) NOT NULL,
   description TEXT,
-  status VARCHAR(100) NOT NULL DEFAULT 'NOT_STARTED',
+  status "PromiseStatus" NOT NULL DEFAULT 'NOT_STARTED',
   progress INT NOT NULL DEFAULT 0 CHECK (progress BETWEEN 0 AND 100),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
