@@ -2,6 +2,8 @@ import request from 'supertest';
 import express from 'express';
 import candidateRoutes from '../src/routes/candidates';
 import promiseRoutes from '../src/routes/promises';
+import electionRoutes from '../src/routes/elections';
+import officeRoutes from '../src/routes/offices';
 import prisma from '../src/db';
 
 jest.mock('../src/db', () => ({
@@ -17,6 +19,17 @@ jest.mock('../src/db', () => ({
   },
   promiseComment: {
     create: jest.fn(),
+  },
+  election: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+  },
+  office: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
   },
 }));
 
@@ -34,6 +47,17 @@ const prismaMock = prisma as unknown as {
   promiseComment: {
     create: jest.Mock;
   };
+  election: {
+    findUnique: jest.Mock;
+    findMany: jest.Mock;
+    create: jest.Mock;
+  };
+  office: {
+    findUnique: jest.Mock;
+    findMany: jest.Mock;
+    create: jest.Mock;
+    update: jest.Mock;
+  };
 };
 
 const buildApp = () => {
@@ -41,6 +65,8 @@ const buildApp = () => {
   app.use(express.json());
   app.use('/api/v1/candidates', candidateRoutes);
   app.use('/api/v1/promises', promiseRoutes);
+  app.use('/api/v1/elections', electionRoutes);
+  app.use('/api/v1/offices', officeRoutes);
   return app;
 };
 
@@ -55,10 +81,12 @@ describe('Candidate routes', () => {
         id: 1,
         name: 'Alice',
         politicalParty: 'ABC',
-        electionYear: 2024,
-        office: 'Prefeita',
+        electionId: 10,
+        officeId: 5,
+        office: { id: 5, name: 'Prefeita' },
         createdAt: new Date('2024-01-01T00:00:00Z'),
         updatedAt: new Date('2024-01-02T00:00:00Z'),
+        election: { id: 10, year: 2024 },
       },
     ]);
 
@@ -71,6 +99,8 @@ describe('Candidate routes', () => {
         id: 1,
         name: 'Alice',
         political_party: 'ABC',
+        office_id: 5,
+        election_id: 10,
         election_year: 2024,
         office: 'Prefeita',
         created_at: '2024-01-01T00:00:00.000Z',
@@ -78,7 +108,9 @@ describe('Candidate routes', () => {
       },
     ]);
     expect(prismaMock.candidate.findMany).toHaveBeenCalledWith({
+      where: undefined,
       orderBy: { id: 'asc' },
+      include: { election: true, office: true },
     });
   });
 
@@ -89,17 +121,31 @@ describe('Candidate routes', () => {
       .send({ political_party: 'XYZ' });
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ error: 'Nome e cargo são campos obrigatórios.' });
+    expect(response.body).toEqual({ error: 'Nome é obrigatório.' });
     expect(prismaMock.candidate.create).not.toHaveBeenCalled();
   });
 
+  test('POST /api/v1/candidates exige office_id', async () => {
+    const app = buildApp();
+    const response = await request(app)
+      .post('/api/v1/candidates')
+      .send({ name: 'Bob' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'office_id é obrigatório.' });
+  });
+
   test('POST /api/v1/candidates creates a candidate', async () => {
+    prismaMock.election.findUnique.mockResolvedValue({ id: 10, year: 2024 });
+    prismaMock.office.findUnique.mockResolvedValue({ id: 5, name: 'Vereador' });
     const createdCandidate = {
       id: 42,
       name: 'Bob',
       politicalParty: null,
-      electionYear: null,
-      office: 'Vereador',
+      electionId: 10,
+      election: { id: 10, year: 2024 },
+      officeId: 5,
+      office: { id: 5, name: 'Vereador' },
       createdAt: new Date('2024-02-01T00:00:00Z'),
       updatedAt: new Date('2024-02-01T00:00:00Z'),
     };
@@ -109,25 +155,17 @@ describe('Candidate routes', () => {
     const app = buildApp();
     const response = await request(app)
       .post('/api/v1/candidates')
-      .send({ name: 'Bob', office: 'Vereador' });
+      .send({ name: 'Bob', office_id: 5, election_id: 10 });
 
     expect(response.status).toBe(201);
-    expect(prismaMock.candidate.create).toHaveBeenCalledWith({
-      data: {
-        name: 'Bob',
-        politicalParty: null,
-        electionYear: null,
-        office: 'Vereador',
-      },
-    });
-    expect(response.body).toEqual({
+    expect(prismaMock.office.findUnique).toHaveBeenCalledWith({ where: { id: 5 } });
+    expect(prismaMock.candidate.create).toHaveBeenCalled();
+    expect(response.body).toMatchObject({
       id: 42,
-      name: 'Bob',
-      political_party: null,
-      election_year: null,
+      office_id: 5,
       office: 'Vereador',
-      created_at: '2024-02-01T00:00:00.000Z',
-      updated_at: '2024-02-01T00:00:00.000Z',
+      election_id: 10,
+      election_year: 2024,
     });
   });
 
@@ -237,5 +275,89 @@ describe('Candidate routes', () => {
     expect(response.status).toBe(201);
     expect(prismaMock.promiseComment.create).toHaveBeenCalled();
     expect(response.body.content).toBe('Atualização importante');
+  });
+
+  test('GET /api/v1/elections retorna eleições', async () => {
+    prismaMock.election.findMany.mockResolvedValue([
+      {
+        id: 10,
+        year: 2024,
+        description: 'Municipais',
+        createdAt: new Date('2023-01-01T00:00:00Z'),
+        updatedAt: new Date('2023-01-01T00:00:00Z'),
+      },
+    ]);
+
+    const app = buildApp();
+    const response = await request(app).get('/api/v1/elections');
+
+    expect(response.status).toBe(200);
+    expect(response.body[0]).toMatchObject({ id: 10, year: 2024 });
+  });
+
+  test('POST /api/v1/elections cria eleição', async () => {
+    prismaMock.election.create.mockResolvedValue({
+      id: 11,
+      year: 2026,
+      description: null,
+      createdAt: new Date('2025-01-01T00:00:00Z'),
+      updatedAt: new Date('2025-01-01T00:00:00Z'),
+    });
+
+    const app = buildApp();
+    const response = await request(app).post('/api/v1/elections').send({ year: 2026 });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({ id: 11, year: 2026 });
+  });
+
+  test('GET /api/v1/offices retorna cargos', async () => {
+    prismaMock.office.findMany.mockResolvedValue([
+      {
+        id: 1,
+        name: 'Prefeito',
+        description: null,
+        createdAt: new Date('2024-01-01T00:00:00Z'),
+        updatedAt: new Date('2024-01-01T00:00:00Z'),
+      },
+    ]);
+
+    const app = buildApp();
+    const response = await request(app).get('/api/v1/offices');
+
+    expect(response.status).toBe(200);
+    expect(response.body[0]).toMatchObject({ id: 1, name: 'Prefeito' });
+  });
+
+  test('POST /api/v1/offices cria cargo', async () => {
+    prismaMock.office.create.mockResolvedValue({
+      id: 2,
+      name: 'Governador',
+      description: null,
+      createdAt: new Date('2024-02-01T00:00:00Z'),
+      updatedAt: new Date('2024-02-01T00:00:00Z'),
+    });
+
+    const app = buildApp();
+    const response = await request(app).post('/api/v1/offices').send({ name: 'Governador' });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({ id: 2, name: 'Governador' });
+  });
+
+  test('PATCH /api/v1/offices/:id atualiza cargo', async () => {
+    prismaMock.office.update.mockResolvedValue({
+      id: 2,
+      name: 'Governador',
+      description: 'Atualizado',
+      createdAt: new Date('2024-02-01T00:00:00Z'),
+      updatedAt: new Date('2024-03-01T00:00:00Z'),
+    });
+
+    const app = buildApp();
+    const response = await request(app).patch('/api/v1/offices/2').send({ description: 'Atualizado' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ id: 2, description: 'Atualizado' });
   });
 });

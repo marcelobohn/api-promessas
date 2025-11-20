@@ -8,11 +8,15 @@ API escrita em TypeScript (Node.js/Express) para cadastrar e consultar promessas
 - **Rotas principais:**
   - `GET /` – ping da API.
   - `GET /api/v1/candidates` – lista todos os candidatos.
-  - `POST /api/v1/candidates` – cria um novo candidato (`name` e `office` obrigatórios; `political_party` e `election_year` opcionais).
+  - `POST /api/v1/candidates` – cria um novo candidato (`name` e `office_id` obrigatórios; `political_party` e `election_id` opcionais).
   - `GET /api/v1/candidates/:candidateId/promises` – lista promessas de um candidato.
   - `POST /api/v1/candidates/:candidateId/promises` – cadastra uma promessa com status e percentual.
   - `PATCH /api/v1/promises/:promiseId` – atualiza status, progresso ou descrição.
   - `POST /api/v1/promises/:promiseId/comments` – adiciona comentários de andamento.
+  - `GET /api/v1/elections` – lista eleições cadastradas.
+  - `POST /api/v1/elections` – cria uma eleição (ano + descrição).
+  - `GET /api/v1/offices` – lista cargos disponíveis.
+  - `POST /api/v1/offices` e `PATCH /api/v1/offices/:officeId` – cadastram/atualizam cargos.
 
 ## Requisitos
 - Node.js 20+ e npm 10+ (para desenvolvimento local).
@@ -62,6 +66,16 @@ Os testes usam Jest + Supertest e mockam o Prisma Client, portanto não precisam
 - **Progresso:** inteiro de 0 a 100 indicando percentual concluído.
 - **Comentários:** use `POST /api/v1/promises/:promiseId/comments` para registrar atualizações de andamento (ex.: reuniões, entregas parciais, blockers).
 
+## Eleições (Election)
+- Use `POST /api/v1/elections` para registrar novas eleições com `year` (obrigatório e único) e `description` (opcional).
+- Para vincular um candidato a uma eleição, informe `election_id` ao criar o candidato (ou deixe vazio para uma referência futura).
+- As respostas de candidatos continuam trazendo `election_year`, obtido automaticamente a partir da entidade `Election`.
+
+## Cargos (Office)
+- Registre cargos com `POST /api/v1/offices` (campos `name` obrigatório e `description` opcional) e atualize-os com `PATCH /api/v1/offices/:officeId`.
+- Todo candidato agora exige um `office_id`; o campo `office` retornado pela API reflete o nome associado ao registro em `offices`.
+- Há uma migration (`prisma/migrations/20251118183000_seed_offices/migration.sql`) que pré-popula os cargos padrão (Presidente, Governador, Senador, Deputado Federal/Estadual, Prefeito, Vereador). Rode `npx prisma migrate deploy` (ou `prisma migrate dev`) para aplicá-la.
+
 ## Variáveis de ambiente
 | Variável | Descrição | Default |
 | -------- | --------- | ------- |
@@ -100,7 +114,9 @@ docker compose down -v
 │   ├── db.ts              # Instância do Prisma Client
 │   ├── routes
 │   │   ├── candidates.ts  # Rotas de candidatos + promessas por candidato
-│   │   └── promises.ts    # Rotas de atualização/comentários das promessas
+│   │   ├── promises.ts    # Rotas de atualização/comentários das promessas
+│   │   ├── elections.ts   # CRUD básico de eleições
+│   │   └── offices.ts     # CRUD básico de cargos
 │   ├── utils
 │   │   └── formatters.ts  # Converte entidades Prisma para o contrato da API
 │   └── server.ts          # Entrada principal da API

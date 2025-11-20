@@ -8,16 +8,29 @@ datasource db {
 }
 
 model Candidate {
-  id              Int       @id @default(autoincrement())
-  name            String
-  politicalParty  String?   @map("political_party")
-  electionYear    Int?      @map("election_year")
-  office          String
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  promises        Promise[]
+  id             Int        @id @default(autoincrement())
+  name           String
+  politicalParty String?    @map("political_party")
+  electionId     Int?       @map("election_id")
+  election       Election?  @relation(fields: [electionId], references: [id], onDelete: SetNull)
+  officeId       Int        @map("office_id")
+  office         Office     @relation(fields: [officeId], references: [id], onDelete: Restrict)
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+  promises       Promise[]
 
   @@map("candidates")
+}
+
+model Election {
+  id          Int         @id @default(autoincrement())
+  year        Int         @unique
+  description String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  candidates  Candidate[]
+
+  @@map("elections")
 }
 
 model Promise {
@@ -43,4 +56,15 @@ model PromiseComment {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("promise_comments")
+}
+
+model Office {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  description String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  candidates  Candidate[]
+
+  @@map("offices")
 }

@@ -21,6 +21,13 @@ paths:
   /api/v1/candidates:
     get:
       summary: Lista todos os candidatos
+      parameters:
+        - in: query
+          name: electionId
+          required: false
+          schema:
+            type: integer
+          description: Filtra candidatos por eleição
       responses:
         '200':
           description: Lista ordenada de candidatos
@@ -194,6 +201,116 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
           $ref: '#/components/responses/InternalError'
+  /api/v1/elections:
+    get:
+      summary: Lista eleições cadastradas
+      responses:
+        '200':
+          description: Lista de eleições
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Election'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/offices:
+    get:
+      summary: Lista cargos disponíveis
+      responses:
+        '200':
+          description: Lista de cargos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Office'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      summary: Cria um novo cargo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOfficeInput'
+      responses:
+        '201':
+          description: Cargo criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Office'
+        '400':
+          description: Dados inválidos ou nome duplicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/offices/{officeId}:
+    patch:
+      summary: Atualiza um cargo
+      parameters:
+        - in: path
+          name: officeId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOfficeInput'
+      responses:
+        '200':
+          description: Cargo atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Office'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Cargo não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      summary: Cria uma nova eleição
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateElectionInput'
+      responses:
+        '201':
+          description: Eleição criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Election'
+        '400':
+          description: Dados inválidos ou ano duplicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
 components:
   schemas:
     Candidate:
@@ -209,6 +326,13 @@ components:
           type: string
           nullable: true
           example: XYZ
+        office_id:
+          type: integer
+          example: 5
+        election_id:
+          type: integer
+          nullable: true
+          example: 10
         election_year:
           type: integer
           nullable: true
@@ -227,6 +351,7 @@ components:
       required:
         - id
         - name
+        - office_id
         - office
         - created_at
         - updated_at
@@ -295,16 +420,16 @@ components:
           type: string
           nullable: true
           example: ABC
-        election_year:
+        election_id:
           type: integer
           nullable: true
-          example: 2022
-        office:
-          type: string
-          example: Vereador
+          example: 10
+        office_id:
+          type: integer
+          example: 5
       required:
         - name
-        - office
+        - office_id
     CreatePromiseInput:
       type: object
       properties:
@@ -343,6 +468,76 @@ components:
           type: string
       required:
         - content
+    Election:
+      type: object
+      properties:
+        id:
+          type: integer
+        year:
+          type: integer
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - year
+        - created_at
+        - updated_at
+    CreateElectionInput:
+      type: object
+      properties:
+        year:
+          type: integer
+        description:
+          type: string
+          nullable: true
+      required:
+        - year
+    Office:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+    CreateOfficeInput:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+      required:
+        - name
+    UpdateOfficeInput:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
     ErrorResponse:
       type: object
       properties:

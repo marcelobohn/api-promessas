@@ -5,8 +5,8 @@ import { formatCandidate, formatPromise } from '../utils/formatters';
 interface CandidateRequestBody {
   name?: string;
   political_party?: string | null;
-  election_year?: number | null;
-  office?: string;
+  election_id?: number | null;
+  office_id?: number | null;
 }
 
 interface CreatePromiseRequestBody {
@@ -18,10 +18,23 @@ interface CreatePromiseRequestBody {
 
 const router = Router();
 
-router.get('/', async (_req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
+  const { electionId } = req.query;
+  let parsedElectionId: number | undefined;
+
+  if (typeof electionId !== 'undefined') {
+    const parsed = Number(electionId);
+    if (Number.isNaN(parsed)) {
+      return res.status(400).json({ error: 'Parâmetro electionId inválido.' });
+    }
+    parsedElectionId = parsed;
+  }
+
   try {
     const candidates = await prisma.candidate.findMany({
+      where: parsedElectionId ? { electionId: parsedElectionId } : undefined,
       orderBy: { id: 'asc' },
+      include: { election: true, office: true },
     });
     res.status(200).json(candidates.map(formatCandidate));
   } catch (error) {
@@ -31,20 +44,39 @@ router.get('/', async (_req: Request, res: Response) => {
 });
 
 router.post('/', async (req: Request<unknown, unknown, CandidateRequestBody>, res: Response) => {
-  const { name, political_party, election_year, office } = req.body;
+  const { name, political_party, election_id, office_id } = req.body;
 
-  if (!name || !office) {
-    return res.status(400).json({ error: 'Nome e cargo são campos obrigatórios.' });
+  if (!name) {
+    return res.status(400).json({ error: 'Nome é obrigatório.' });
+  }
+
+  if (typeof office_id !== 'number') {
+    return res.status(400).json({ error: 'office_id é obrigatório.' });
   }
 
   try {
+    let electionIdValue: number | null = null;
+    if (typeof election_id !== 'undefined' && election_id !== null) {
+      const election = await prisma.election.findUnique({ where: { id: election_id } });
+      if (!election) {
+        return res.status(404).json({ error: 'Eleição não encontrada.' });
+      }
+      electionIdValue = election.id;
+    }
+
+    const office = await prisma.office.findUnique({ where: { id: office_id } });
+    if (!office) {
+      return res.status(404).json({ error: 'Cargo (office) não encontrado.' });
+    }
+
     const candidate = await prisma.candidate.create({
       data: {
         name,
         politicalParty: political_party || null,
-        electionYear: typeof election_year === 'number' ? election_year : null,
-        office,
+        electionId: electionIdValue,
+        officeId: office.id,
       },
+      include: { election: true, office: true },
     });
 
     res.status(201).json(formatCandidate(candidate));
