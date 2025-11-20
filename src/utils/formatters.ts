@@ -3,11 +3,21 @@ import { Candidate, Election, Office, Promise as CampaignPromise, PromiseComment
 export interface CandidateResponse {
   id: number;
   name: string;
+  political_party_id: number | null;
   political_party: string | null;
   office_id: number;
   office: string;
   election_id: number | null;
   election_year: number | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface PoliticalPartyResponse {
+  id: number;
+  acronym: string;
+  number: number;
+  name: string;
   created_at: Date;
   updated_at: Date;
 }
@@ -50,17 +60,27 @@ export const formatOffice = (office: Office) => ({
 });
 
 export const formatCandidate = (
-  candidate: Candidate & { election?: Election | null; office?: Office }
+  candidate: Candidate & { election?: Election | null; office?: Office; politicalParty?: { acronym: string; id: number } | null }
 ): CandidateResponse => ({
   id: candidate.id,
   name: candidate.name,
-  political_party: candidate.politicalParty,
+  political_party_id: candidate.politicalPartyId ?? null,
+  political_party: candidate.politicalParty ? candidate.politicalParty.acronym : null,
   office_id: candidate.officeId,
   office: candidate.office?.name ?? '',
   election_id: candidate.electionId ?? null,
   election_year: candidate.election?.year ?? null,
   created_at: candidate.createdAt,
   updated_at: candidate.updatedAt,
+});
+
+export const formatPoliticalParty = (party: { id: number; acronym: string; number: number; name: string; createdAt: Date; updatedAt: Date }): PoliticalPartyResponse => ({
+  id: party.id,
+  acronym: party.acronym,
+  number: party.number,
+  name: party.name,
+  created_at: party.createdAt,
+  updated_at: party.updatedAt,
 });
 
 export const formatPromiseComment = (comment: PromiseComment): PromiseCommentResponse => ({

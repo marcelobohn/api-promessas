@@ -13,44 +13,45 @@ enum ElectionType {
 }
 
 model Candidate {
-  id             Int        @id @default(autoincrement())
-  name           String
-  politicalParty String?    @map("political_party")
-  electionId     Int?       @map("election_id")
-  election       Election?  @relation(fields: [electionId], references: [id], onDelete: SetNull)
-  officeId       Int        @map("office_id")
-  office         Office     @relation(fields: [officeId], references: [id], onDelete: Restrict)
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
-  promises       Promise[]
+  id               Int             @id @default(autoincrement())
+  name             String
+  politicalPartyId Int?            @map("political_party_id")
+  politicalParty   PoliticalParty? @relation(fields: [politicalPartyId], references: [id], onDelete: SetNull)
+  electionId       Int?            @map("election_id")
+  election         Election?       @relation(fields: [electionId], references: [id], onDelete: SetNull)
+  officeId         Int             @map("office_id")
+  office           Office          @relation(fields: [officeId], references: [id], onDelete: Restrict)
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  promises         Promise[]
 
   @@map("candidates")
 }
 
 model Election {
-  id          Int         @id @default(autoincrement())
-  year        Int         @unique
+  id          Int          @id @default(autoincrement())
+  year        Int          @unique
   description String?
-  active      Boolean     @default(true) @map("is_active")
+  active      Boolean      @default(true) @map("is_active")
   type        ElectionType @default(FEDERAL_ESTADUAL) @map("election_type")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
   candidates  Candidate[]
 
   @@map("elections")
 }
 
 model Promise {
-  id          Int               @id @default(autoincrement())
+  id          Int              @id @default(autoincrement())
   title       String
   description String?
-  status      String            @default("NOT_STARTED")
-  progress    Int               @default(0)
-  candidateId Int               @map("candidate_id")
-  candidate   Candidate         @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  status      String           @default("NOT_STARTED")
+  progress    Int              @default(0)
+  candidateId Int              @map("candidate_id")
+  candidate   Candidate        @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   comments    PromiseComment[]
-  createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
 
   @@map("promises")
 }
@@ -66,13 +67,25 @@ model PromiseComment {
 }
 
 model Office {
-  id          Int         @id @default(autoincrement())
-  name        String      @unique
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
   description String?
   type        ElectionType @default(FEDERAL_ESTADUAL) @map("office_type")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
   candidates  Candidate[]
 
   @@map("offices")
+}
+
+model PoliticalParty {
+  id         Int         @id @default(autoincrement())
+  acronym    String      @unique
+  number     Int         @unique
+  name       String
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+  candidates Candidate[]
+
+  @@map("political_parties")
 }

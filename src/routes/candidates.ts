@@ -4,7 +4,7 @@ import { formatCandidate, formatPromise } from '../utils/formatters';
 
 interface CandidateRequestBody {
   name?: string;
-  political_party?: string | null;
+  political_party_id?: number | null;
   election_id?: number | null;
   office_id?: number | null;
 }
@@ -34,7 +34,7 @@ router.get('/', async (req: Request, res: Response) => {
     const candidates = await prisma.candidate.findMany({
       where: parsedElectionId ? { electionId: parsedElectionId } : undefined,
       orderBy: { id: 'asc' },
-      include: { election: true, office: true },
+      include: { election: true, office: true, politicalParty: true },
     });
     res.status(200).json(candidates.map(formatCandidate));
   } catch (error) {
@@ -44,7 +44,7 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 router.post('/', async (req: Request<unknown, unknown, CandidateRequestBody>, res: Response) => {
-  const { name, political_party, election_id, office_id } = req.body;
+  const { name, political_party_id, election_id, office_id } = req.body;
 
   if (!name) {
     return res.status(400).json({ error: 'Nome é obrigatório.' });
@@ -64,6 +64,15 @@ router.post('/', async (req: Request<unknown, unknown, CandidateRequestBody>, re
       electionIdValue = election.id;
     }
 
+    let politicalPartyIdValue: number | null = null;
+    if (typeof political_party_id !== 'undefined' && political_party_id !== null) {
+      const party = await prisma.politicalParty.findUnique({ where: { id: political_party_id } });
+      if (!party) {
+        return res.status(404).json({ error: 'Partido não encontrado.' });
+      }
+      politicalPartyIdValue = party.id;
+    }
+
     const office = await prisma.office.findUnique({ where: { id: office_id } });
     if (!office) {
       return res.status(404).json({ error: 'Cargo (office) não encontrado.' });
@@ -72,11 +81,11 @@ router.post('/', async (req: Request<unknown, unknown, CandidateRequestBody>, re
     const candidate = await prisma.candidate.create({
       data: {
         name,
-        politicalParty: political_party || null,
+        politicalPartyId: politicalPartyIdValue,
         electionId: electionIdValue,
         officeId: office.id,
       },
-      include: { election: true, office: true },
+      include: { election: true, office: true, politicalParty: true },
     });
 
     res.status(201).json(formatCandidate(candidate));

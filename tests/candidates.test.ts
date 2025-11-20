@@ -4,6 +4,7 @@ import candidateRoutes from '../src/routes/candidates';
 import promiseRoutes from '../src/routes/promises';
 import electionRoutes from '../src/routes/elections';
 import officeRoutes from '../src/routes/offices';
+import politicalPartyRoutes from '../src/routes/political-parties';
 import prisma from '../src/db';
 
 jest.mock('../src/db', () => ({
@@ -24,6 +25,10 @@ jest.mock('../src/db', () => ({
     findUnique: jest.fn(),
     findMany: jest.fn(),
     create: jest.fn(),
+  },
+  politicalParty: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
   },
   office: {
     findUnique: jest.fn(),
@@ -52,6 +57,10 @@ const prismaMock = prisma as unknown as {
     findMany: jest.Mock;
     create: jest.Mock;
   };
+  politicalParty: {
+    findUnique: jest.Mock;
+    findMany: jest.Mock;
+  };
   office: {
     findUnique: jest.Mock;
     findMany: jest.Mock;
@@ -67,6 +76,7 @@ const buildApp = () => {
   app.use('/api/v1/promises', promiseRoutes);
   app.use('/api/v1/elections', electionRoutes);
   app.use('/api/v1/offices', officeRoutes);
+  app.use('/api/v1/political-parties', politicalPartyRoutes);
   return app;
 };
 
@@ -80,7 +90,8 @@ describe('Candidate routes', () => {
       {
         id: 1,
         name: 'Alice',
-        politicalParty: 'ABC',
+        politicalPartyId: 99,
+        politicalParty: { id: 99, acronym: 'ABC' },
         electionId: 10,
         officeId: 5,
         office: { id: 5, name: 'Prefeita' },
@@ -98,6 +109,7 @@ describe('Candidate routes', () => {
       {
         id: 1,
         name: 'Alice',
+        political_party_id: 99,
         political_party: 'ABC',
         office_id: 5,
         election_id: 10,
@@ -110,7 +122,7 @@ describe('Candidate routes', () => {
     expect(prismaMock.candidate.findMany).toHaveBeenCalledWith({
       where: undefined,
       orderBy: { id: 'asc' },
-      include: { election: true, office: true },
+      include: { election: true, office: true, politicalParty: true },
     });
   });
 
@@ -118,7 +130,7 @@ describe('Candidate routes', () => {
     const app = buildApp();
     const response = await request(app)
       .post('/api/v1/candidates')
-      .send({ political_party: 'XYZ' });
+      .send({ political_party_id: 1 });
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'Nome é obrigatório.' });
@@ -138,10 +150,13 @@ describe('Candidate routes', () => {
   test('POST /api/v1/candidates creates a candidate', async () => {
     prismaMock.election.findUnique.mockResolvedValue({ id: 10, year: 2024 });
     prismaMock.office.findUnique.mockResolvedValue({ id: 5, name: 'Vereador' });
+    prismaMock.politicalParty = prismaMock.politicalParty || { findUnique: jest.fn() };
+    prismaMock.politicalParty.findUnique.mockResolvedValue({ id: 1, acronym: 'MDB' });
     const createdCandidate = {
       id: 42,
       name: 'Bob',
-      politicalParty: null,
+      politicalPartyId: 1,
+      politicalParty: { id: 1, acronym: 'MDB' },
       electionId: 10,
       election: { id: 10, year: 2024 },
       officeId: 5,
@@ -155,7 +170,7 @@ describe('Candidate routes', () => {
     const app = buildApp();
     const response = await request(app)
       .post('/api/v1/candidates')
-      .send({ name: 'Bob', office_id: 5, election_id: 10 });
+      .send({ name: 'Bob', office_id: 5, election_id: 10, political_party_id: 1 });
 
     expect(response.status).toBe(201);
     expect(prismaMock.office.findUnique).toHaveBeenCalledWith({ where: { id: 5 } });
@@ -166,6 +181,8 @@ describe('Candidate routes', () => {
       office: 'Vereador',
       election_id: 10,
       election_year: 2024,
+      political_party_id: 1,
+      political_party: 'MDB',
     });
   });
 
@@ -398,5 +415,27 @@ describe('Candidate routes', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ id: 2, description: 'Atualizado' });
+  });
+
+  test('GET /api/v1/political-parties retorna partidos', async () => {
+    prismaMock.politicalParty.findMany.mockResolvedValue([
+      {
+        id: 1,
+        acronym: 'MDB',
+        number: 15,
+        name: 'MOVIMENTO DEMOCRATICO BRASILEIRO',
+        createdAt: new Date('2024-01-01T00:00:00Z'),
+        updatedAt: new Date('2024-01-02T00:00:00Z'),
+      },
+    ]);
+
+    const app = buildApp();
+    const response = await request(app).get('/api/v1/political-parties');
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.politicalParty.findMany).toHaveBeenCalledWith({
+      orderBy: [{ number: 'asc' }, { acronym: 'asc' }],
+    });
+    expect(response.body[0]).toMatchObject({ acronym: 'MDB', number: 15 });
   });
 });
