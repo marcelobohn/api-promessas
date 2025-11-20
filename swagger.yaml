@@ -218,6 +218,13 @@ paths:
   /api/v1/offices:
     get:
       summary: Lista cargos disponíveis
+      parameters:
+        - in: query
+          name: type
+          required: false
+          schema:
+            $ref: '#/components/schemas/ElectionType'
+          description: Filtra cargos pelo tipo de eleição (FEDERAL_ESTADUAL ou MUNICIPAL)
       responses:
         '200':
           description: Lista de cargos
@@ -478,6 +485,8 @@ components:
         description:
           type: string
           nullable: true
+        type:
+          $ref: '#/components/schemas/ElectionType'
         created_at:
           type: string
           format: date-time
@@ -487,6 +496,7 @@ components:
       required:
         - id
         - year
+        - type
         - created_at
         - updated_at
     CreateElectionInput:
@@ -509,6 +519,8 @@ components:
         description:
           type: string
           nullable: true
+        type:
+          $ref: '#/components/schemas/ElectionType'
         created_at:
           type: string
           format: date-time
@@ -518,6 +530,7 @@ components:
       required:
         - id
         - name
+        - type
         - created_at
         - updated_at
     CreateOfficeInput:
@@ -538,6 +551,12 @@ components:
         description:
           type: string
           nullable: true
+    ElectionType:
+      type: string
+      description: Tipo de eleição/cargo
+      enum:
+        - FEDERAL_ESTADUAL
+        - MUNICIPAL
     ErrorResponse:
       type: object
       properties:

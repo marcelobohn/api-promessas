@@ -283,6 +283,7 @@ describe('Candidate routes', () => {
         id: 10,
         year: 2024,
         description: 'Municipais',
+        type: 'MUNICIPAL',
         createdAt: new Date('2023-01-01T00:00:00Z'),
         updatedAt: new Date('2023-01-01T00:00:00Z'),
       },
@@ -292,7 +293,7 @@ describe('Candidate routes', () => {
     const response = await request(app).get('/api/v1/elections');
 
     expect(response.status).toBe(200);
-    expect(response.body[0]).toMatchObject({ id: 10, year: 2024 });
+    expect(response.body[0]).toMatchObject({ id: 10, year: 2024, type: 'MUNICIPAL' });
   });
 
   test('POST /api/v1/elections cria eleição', async () => {
@@ -300,6 +301,7 @@ describe('Candidate routes', () => {
       id: 11,
       year: 2026,
       description: null,
+      type: 'FEDERAL_ESTADUAL',
       createdAt: new Date('2025-01-01T00:00:00Z'),
       updatedAt: new Date('2025-01-01T00:00:00Z'),
     });
@@ -308,7 +310,7 @@ describe('Candidate routes', () => {
     const response = await request(app).post('/api/v1/elections').send({ year: 2026 });
 
     expect(response.status).toBe(201);
-    expect(response.body).toMatchObject({ id: 11, year: 2026 });
+    expect(response.body).toMatchObject({ id: 11, year: 2026, type: 'FEDERAL_ESTADUAL' });
   });
 
   test('GET /api/v1/offices retorna cargos', async () => {
@@ -317,6 +319,7 @@ describe('Candidate routes', () => {
         id: 1,
         name: 'Prefeito',
         description: null,
+        type: 'MUNICIPAL',
         createdAt: new Date('2024-01-01T00:00:00Z'),
         updatedAt: new Date('2024-01-01T00:00:00Z'),
       },
@@ -326,7 +329,41 @@ describe('Candidate routes', () => {
     const response = await request(app).get('/api/v1/offices');
 
     expect(response.status).toBe(200);
-    expect(response.body[0]).toMatchObject({ id: 1, name: 'Prefeito' });
+    expect(response.body[0]).toMatchObject({ id: 1, name: 'Prefeito', type: 'MUNICIPAL' });
+  });
+
+  test('GET /api/v1/offices filtra por tipo', async () => {
+    prismaMock.office.findMany.mockResolvedValue([
+      {
+        id: 2,
+        name: 'Governador',
+        description: null,
+        type: 'FEDERAL_ESTADUAL',
+        createdAt: new Date('2024-02-01T00:00:00Z'),
+        updatedAt: new Date('2024-02-01T00:00:00Z'),
+      },
+    ]);
+
+    const app = buildApp();
+    const response = await request(app).get('/api/v1/offices').query({ type: 'FEDERAL_ESTADUAL' });
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.office.findMany).toHaveBeenCalledWith({
+      where: { type: 'FEDERAL_ESTADUAL' },
+      orderBy: { name: 'asc' },
+    });
+    expect(response.body[0]).toMatchObject({ name: 'Governador', type: 'FEDERAL_ESTADUAL' });
+  });
+
+  test('GET /api/v1/offices rejeita tipo inválido', async () => {
+    const app = buildApp();
+    const response = await request(app).get('/api/v1/offices').query({ type: 'INVALIDO' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: 'Tipo de eleição inválido. Use FEDERAL_ESTADUAL ou MUNICIPAL.',
+    });
+    expect(prismaMock.office.findMany).not.toHaveBeenCalled();
   });
 
   test('POST /api/v1/offices cria cargo', async () => {
@@ -334,6 +371,7 @@ describe('Candidate routes', () => {
       id: 2,
       name: 'Governador',
       description: null,
+      type: 'FEDERAL_ESTADUAL',
       createdAt: new Date('2024-02-01T00:00:00Z'),
       updatedAt: new Date('2024-02-01T00:00:00Z'),
     });
@@ -342,7 +380,7 @@ describe('Candidate routes', () => {
     const response = await request(app).post('/api/v1/offices').send({ name: 'Governador' });
 
     expect(response.status).toBe(201);
-    expect(response.body).toMatchObject({ id: 2, name: 'Governador' });
+    expect(response.body).toMatchObject({ id: 2, name: 'Governador', type: 'FEDERAL_ESTADUAL' });
   });
 
   test('PATCH /api/v1/offices/:id atualiza cargo', async () => {
@@ -350,6 +388,7 @@ describe('Candidate routes', () => {
       id: 2,
       name: 'Governador',
       description: 'Atualizado',
+      type: 'FEDERAL_ESTADUAL',
       createdAt: new Date('2024-02-01T00:00:00Z'),
       updatedAt: new Date('2024-03-01T00:00:00Z'),
     });

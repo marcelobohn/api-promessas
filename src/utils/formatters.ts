@@ -35,6 +35,7 @@ export const formatElection = (election: Election) => ({
   id: election.id,
   year: election.year,
   description: election.description ?? null,
+  type: election.type,
   created_at: election.createdAt,
   updated_at: election.updatedAt,
 });
@@ -43,6 +44,7 @@ export const formatOffice = (office: Office) => ({
   id: office.id,
   name: office.name,
   description: office.description ?? null,
+  type: office.type,
   created_at: office.createdAt,
   updated_at: office.updatedAt,
 });

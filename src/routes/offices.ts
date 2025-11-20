@@ -14,9 +14,17 @@ interface UpdateOfficeRequest {
 
 const router = Router();
 
-router.get('/', async (_req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
+  const typeParam = (typeof req.query.type === 'string' ? req.query.type : undefined)?.toUpperCase();
+  const allowedTypes = ['FEDERAL_ESTADUAL', 'MUNICIPAL'];
+
+  if (typeParam && !allowedTypes.includes(typeParam)) {
+    return res.status(400).json({ error: 'Tipo de eleição inválido. Use FEDERAL_ESTADUAL ou MUNICIPAL.' });
+  }
+
   try {
     const offices = await prisma.office.findMany({
+      where: typeParam ? { type: typeParam as 'FEDERAL_ESTADUAL' | 'MUNICIPAL' } : undefined,
       orderBy: { name: 'asc' },
     });
     res.status(200).json(offices.map(formatOffice));

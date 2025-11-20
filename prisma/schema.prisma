@@ -7,6 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ElectionType {
+  FEDERAL_ESTADUAL
+  MUNICIPAL
+}
+
 model Candidate {
   id             Int        @id @default(autoincrement())
   name           String
@@ -26,6 +31,8 @@ model Election {
   id          Int         @id @default(autoincrement())
   year        Int         @unique
   description String?
+  active      Boolean     @default(true) @map("is_active")
+  type        ElectionType @default(FEDERAL_ESTADUAL) @map("election_type")
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
   candidates  Candidate[]
@@ -62,6 +69,7 @@ model Office {
   id          Int         @id @default(autoincrement())
   name        String      @unique
   description String?
+  type        ElectionType @default(FEDERAL_ESTADUAL) @map("office_type")
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
   candidates  Candidate[]
