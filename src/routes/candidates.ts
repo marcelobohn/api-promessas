@@ -8,6 +8,8 @@ interface CandidateRequestBody {
   political_party_id?: number | null;
   election_id?: number | null;
   office_id?: number | null;
+  state_code?: number | null;
+  city_id?: number | null;
 }
 
 interface CreatePromiseRequestBody {
@@ -35,7 +37,7 @@ router.get('/', async (req: Request, res: Response) => {
     const candidates = await prisma.candidate.findMany({
       where: parsedElectionId ? { electionId: parsedElectionId } : undefined,
       orderBy: { id: 'asc' },
-      include: { election: true, office: true, politicalParty: true },
+      include: { election: true, office: true, politicalParty: true, state: true, city: true },
     });
     res.status(200).json(candidates.map(formatCandidate));
   } catch (error) {
@@ -45,7 +47,7 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 router.post('/', async (req: Request<unknown, unknown, CandidateRequestBody>, res: Response) => {
-  const { name, political_party_id, election_id, office_id } = req.body;
+  const { name, political_party_id, election_id, office_id, state_code, city_id } = req.body;
 
   if (!name) {
     return res.status(400).json({ error: 'Nome é obrigatório.' });
@@ -79,14 +81,45 @@ router.post('/', async (req: Request<unknown, unknown, CandidateRequestBody>, re
       return res.status(404).json({ error: 'Cargo (office) não encontrado.' });
     }
 
+    let stateCodeValue: number | null = null;
+    let cityIdValue: number | null = null;
+
+    if (office.type === 'MUNICIPAL') {
+      if (typeof city_id !== 'number') {
+        return res.status(400).json({ error: 'Para cargos municipais, city_id é obrigatório.' });
+      }
+      const city = await prisma.city.findUnique({
+        where: { id: city_id },
+        select: { id: true, stateCode: true },
+      });
+      if (!city) {
+        return res.status(404).json({ error: 'Cidade não encontrada.' });
+      }
+      cityIdValue = city.id;
+      stateCodeValue = city.stateCode;
+    } else {
+      if (typeof city_id !== 'undefined' && city_id !== null) {
+        return res.status(400).json({ error: 'city_id só é permitido para cargos municipais.' });
+      }
+      if (typeof state_code === 'number') {
+        const state = await prisma.state.findUnique({ where: { codigoUf: state_code } });
+        if (!state) {
+          return res.status(404).json({ error: 'Estado não encontrado.' });
+        }
+        stateCodeValue = state.codigoUf;
+      }
+    }
+
     const candidate = await prisma.candidate.create({
       data: {
         name,
         politicalPartyId: politicalPartyIdValue,
         electionId: electionIdValue,
         officeId: office.id,
+        stateCode: stateCodeValue,
+        cityId: cityIdValue,
       },
-      include: { election: true, office: true, politicalParty: true },
+      include: { election: true, office: true, politicalParty: true, state: true, city: true },
     });
 
     res.status(201).json(formatCandidate(candidate));

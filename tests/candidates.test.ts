@@ -5,6 +5,8 @@ import promiseRoutes from '../src/routes/promises';
 import electionRoutes from '../src/routes/elections';
 import officeRoutes from '../src/routes/offices';
 import politicalPartyRoutes from '../src/routes/political-parties';
+import stateRoutes from '../src/routes/states';
+import cityRoutes from '../src/routes/cities';
 import prisma from '../src/db';
 
 jest.mock('../src/db', () => ({
@@ -12,6 +14,14 @@ jest.mock('../src/db', () => ({
     findMany: jest.fn(),
     create: jest.fn(),
     findUnique: jest.fn(),
+  },
+  city: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+  },
+  state: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
   },
   promise: {
     findMany: jest.fn(),
@@ -43,6 +53,14 @@ const prismaMock = prisma as unknown as {
     findMany: jest.Mock;
     create: jest.Mock;
     findUnique: jest.Mock;
+  };
+  city: {
+    findUnique: jest.Mock;
+    findMany: jest.Mock;
+  };
+  state: {
+    findUnique: jest.Mock;
+    findMany: jest.Mock;
   };
   promise: {
     findMany: jest.Mock;
@@ -77,6 +95,8 @@ const buildApp = () => {
   app.use('/api/v1/elections', electionRoutes);
   app.use('/api/v1/offices', officeRoutes);
   app.use('/api/v1/political-parties', politicalPartyRoutes);
+  app.use('/api/v1/states', stateRoutes);
+  app.use('/api/v1/cities', cityRoutes);
   return app;
 };
 
@@ -95,6 +115,9 @@ describe('Candidate routes', () => {
         electionId: 10,
         officeId: 5,
         office: { id: 5, name: 'Prefeita' },
+        stateCode: 35,
+        cityId: 3550308,
+        city: { id: 3550308, name: 'Sao Paulo', stateCode: 35 },
         createdAt: new Date('2024-01-01T00:00:00Z'),
         updatedAt: new Date('2024-01-02T00:00:00Z'),
         election: { id: 10, year: 2024 },
@@ -115,6 +138,8 @@ describe('Candidate routes', () => {
         election_id: 10,
         election_year: 2024,
         office: 'Prefeita',
+        state_code: 35,
+        city_id: 3550308,
         created_at: '2024-01-01T00:00:00.000Z',
         updated_at: '2024-01-02T00:00:00.000Z',
       },
@@ -122,7 +147,7 @@ describe('Candidate routes', () => {
     expect(prismaMock.candidate.findMany).toHaveBeenCalledWith({
       where: undefined,
       orderBy: { id: 'asc' },
-      include: { election: true, office: true, politicalParty: true },
+      include: { election: true, office: true, politicalParty: true, state: true, city: true },
     });
   });
 
@@ -149,9 +174,10 @@ describe('Candidate routes', () => {
 
   test('POST /api/v1/candidates creates a candidate', async () => {
     prismaMock.election.findUnique.mockResolvedValue({ id: 10, year: 2024 });
-    prismaMock.office.findUnique.mockResolvedValue({ id: 5, name: 'Vereador' });
+    prismaMock.office.findUnique.mockResolvedValue({ id: 5, name: 'Vereador', type: 'MUNICIPAL' });
     prismaMock.politicalParty = prismaMock.politicalParty || { findUnique: jest.fn() };
     prismaMock.politicalParty.findUnique.mockResolvedValue({ id: 1, acronym: 'MDB' });
+    prismaMock.city.findUnique.mockResolvedValue({ id: 12345, stateCode: 35 });
     const createdCandidate = {
       id: 42,
       name: 'Bob',
@@ -160,7 +186,11 @@ describe('Candidate routes', () => {
       electionId: 10,
       election: { id: 10, year: 2024 },
       officeId: 5,
-      office: { id: 5, name: 'Vereador' },
+      office: { id: 5, name: 'Vereador', type: 'MUNICIPAL' },
+      cityId: 12345,
+      city: { id: 12345, name: 'Cidade X', stateCode: 35 },
+      stateCode: 35,
+      state: { codigoUf: 35, name: 'Sao Paulo', abbreviation: 'SP' },
       createdAt: new Date('2024-02-01T00:00:00Z'),
       updatedAt: new Date('2024-02-01T00:00:00Z'),
     };
@@ -170,7 +200,7 @@ describe('Candidate routes', () => {
     const app = buildApp();
     const response = await request(app)
       .post('/api/v1/candidates')
-      .send({ name: 'Bob', office_id: 5, election_id: 10, political_party_id: 1 });
+      .send({ name: 'Bob', office_id: 5, election_id: 10, political_party_id: 1, city_id: 12345 });
 
     expect(response.status).toBe(201);
     expect(prismaMock.office.findUnique).toHaveBeenCalledWith({ where: { id: 5 } });
@@ -183,6 +213,8 @@ describe('Candidate routes', () => {
       election_year: 2024,
       political_party_id: 1,
       political_party: 'MDB',
+      city_id: 12345,
+      state_code: 35,
     });
   });
 
@@ -437,5 +469,43 @@ describe('Candidate routes', () => {
       orderBy: [{ number: 'asc' }, { acronym: 'asc' }],
     });
     expect(response.body[0]).toMatchObject({ acronym: 'MDB', number: 15 });
+  });
+
+  test('GET /api/v1/states retorna estados', async () => {
+    prismaMock.state.findMany.mockResolvedValue([
+      { codigoUf: 35, name: 'Sao Paulo', abbreviation: 'SP' },
+    ]);
+
+    const app = buildApp();
+    const response = await request(app).get('/api/v1/states');
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.state.findMany).toHaveBeenCalledWith({ orderBy: { abbreviation: 'asc' } });
+    expect(response.body[0]).toMatchObject({ codigo_uf: 35, abbreviation: 'SP' });
+  });
+
+  test('GET /api/v1/cities exige state_code', async () => {
+    const app = buildApp();
+    const response = await request(app).get('/api/v1/cities');
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'Parâmetro state_code é obrigatório e deve ser numérico.' });
+    expect(prismaMock.city.findMany).not.toHaveBeenCalled();
+  });
+
+  test('GET /api/v1/cities retorna cidades por estado', async () => {
+    prismaMock.city.findMany.mockResolvedValue([
+      { id: 1, ibgeCode: 3550308, name: 'Sao Paulo', stateCode: 35 },
+    ]);
+
+    const app = buildApp();
+    const response = await request(app).get('/api/v1/cities').query({ state_code: 35 });
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.city.findMany).toHaveBeenCalledWith({
+      where: { stateCode: 35 },
+      orderBy: { name: 'asc' },
+    });
+    expect(response.body[0]).toMatchObject({ ibge_code: 3550308, state_code: 35 });
   });
 });

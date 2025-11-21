@@ -1,4 +1,4 @@
-import { Candidate, Election, Office, Promise as CampaignPromise, PromiseComment } from '@prisma/client';
+import { Candidate, Election, Office, Promise as CampaignPromise, PromiseComment, State, City } from '@prisma/client';
 
 export interface CandidateResponse {
   id: number;
@@ -9,6 +9,8 @@ export interface CandidateResponse {
   office: string;
   election_id: number | null;
   election_year: number | null;
+  state_code: number | null;
+  city_id: number | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -20,6 +22,19 @@ export interface PoliticalPartyResponse {
   name: string;
   created_at: Date;
   updated_at: Date;
+}
+
+export interface StateResponse {
+  codigo_uf: number;
+  name: string;
+  abbreviation: string;
+}
+
+export interface CityResponse {
+  id: number;
+  ibge_code: number;
+  name: string;
+  state_code: number;
 }
 
 export interface PromiseCommentResponse {
@@ -58,7 +73,13 @@ export const formatOffice = (office: Office) => ({
 });
 
 export const formatCandidate = (
-  candidate: Candidate & { election?: Election | null; office?: Office; politicalParty?: { acronym: string; id: number } | null }
+  candidate: Candidate & {
+    election?: Election | null;
+    office?: Office;
+    politicalParty?: { acronym: string; id: number } | null;
+    state?: State | null;
+    city?: City | null;
+  }
 ): CandidateResponse => ({
   id: candidate.id,
   name: candidate.name,
@@ -68,6 +89,8 @@ export const formatCandidate = (
   office: candidate.office?.name ?? '',
   election_id: candidate.electionId ?? null,
   election_year: candidate.election?.year ?? null,
+  state_code: candidate.stateCode ?? candidate.state?.codigoUf ?? null,
+  city_id: candidate.cityId ?? candidate.city?.id ?? null,
   created_at: candidate.createdAt,
   updated_at: candidate.updatedAt,
 });
@@ -79,6 +102,19 @@ export const formatPoliticalParty = (party: { id: number; acronym: string; numbe
   name: party.name,
   created_at: party.createdAt,
   updated_at: party.updatedAt,
+});
+
+export const formatState = (state: State): StateResponse => ({
+  codigo_uf: state.codigoUf,
+  name: state.name,
+  abbreviation: state.abbreviation,
+});
+
+export const formatCity = (city: City): CityResponse => ({
+  id: city.id,
+  ibge_code: city.ibgeCode,
+  name: city.name,
+  state_code: city.stateCode,
 });
 
 export const formatPromiseComment = (comment: PromiseComment): PromiseCommentResponse => ({

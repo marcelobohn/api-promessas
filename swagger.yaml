@@ -236,6 +236,47 @@ paths:
                   $ref: '#/components/schemas/Office'
         '500':
           $ref: '#/components/responses/InternalError'
+  /api/v1/states:
+    get:
+      summary: Lista estados
+      responses:
+        '200':
+          description: Lista de estados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/State'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/cities:
+    get:
+      summary: Lista cidades de um estado
+      parameters:
+        - in: query
+          name: state_code
+          required: true
+          schema:
+            type: integer
+          description: Código UF (codigo_uf) do estado
+      responses:
+        '200':
+          description: Lista de cidades do estado
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/City'
+        '400':
+          description: Falta o state_code ou está inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
     post:
       summary: Cria um novo cargo
       requestBody:
@@ -354,6 +395,14 @@ components:
         office_id:
           type: integer
           example: 5
+        state_code:
+          type: integer
+          nullable: true
+          example: 35
+        city_id:
+          type: integer
+          nullable: true
+          example: 3550308
         election_id:
           type: integer
           nullable: true
@@ -452,6 +501,16 @@ components:
         office_id:
           type: integer
           example: 5
+        state_code:
+          type: integer
+          nullable: true
+          example: 35
+          description: Obrigatório para cargos federais/estaduais quando aplicável; proibido para cargos municipais
+        city_id:
+          type: integer
+          nullable: true
+          example: 3550308
+          description: Obrigatório para cargos municipais (deve pertencer ao estado correspondente)
       required:
         - name
         - office_id
@@ -588,6 +647,42 @@ components:
         - name
         - created_at
         - updated_at
+    State:
+      type: object
+      properties:
+        codigo_uf:
+          type: integer
+          example: 35
+        name:
+          type: string
+          example: Sao Paulo
+        abbreviation:
+          type: string
+          example: SP
+      required:
+        - codigo_uf
+        - name
+        - abbreviation
+    City:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 3550308
+        ibge_code:
+          type: integer
+          example: 3550308
+        name:
+          type: string
+          example: Sao Paulo
+        state_code:
+          type: integer
+          example: 35
+      required:
+        - id
+        - ibge_code
+        - name
+        - state_code
     PromiseStatus:
       type: string
       enum:

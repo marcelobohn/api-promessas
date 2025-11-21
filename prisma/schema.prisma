@@ -21,6 +21,10 @@ model Candidate {
   election         Election?       @relation(fields: [electionId], references: [id], onDelete: SetNull)
   officeId         Int             @map("office_id")
   office           Office          @relation(fields: [officeId], references: [id], onDelete: Restrict)
+  stateCode        Int?            @map("state_code")
+  state            State?          @relation("CandidateState", fields: [stateCode], references: [codigoUf], onDelete: SetNull)
+  cityId           Int?            @map("city_id")
+  city             City?           @relation("CandidateCity", fields: [cityId], references: [id], onDelete: SetNull)
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
   promises         Promise[]
@@ -99,6 +103,7 @@ model State {
   name        String
   abbreviation String  @unique
   cities      City[]
+  candidates  Candidate[] @relation("CandidateState")
 
   @@map("states")
 }
@@ -109,6 +114,7 @@ model City {
   name      String
   stateCode Int      @map("state_code")
   state     State    @relation(fields: [stateCode], references: [codigoUf], onDelete: Cascade)
+  candidates Candidate[] @relation("CandidateCity")
 
   @@unique([name, stateCode])
   @@map("cities")

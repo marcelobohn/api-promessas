@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS candidates (
   political_party_id INT REFERENCES political_parties(id) ON DELETE SET NULL,
   election_id INT REFERENCES elections(id) ON DELETE SET NULL,
   office_id INT NOT NULL REFERENCES offices(id) ON DELETE RESTRICT,
+  state_code INT REFERENCES states(codigo_uf) ON DELETE SET NULL,
+  city_id INT REFERENCES cities(id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
