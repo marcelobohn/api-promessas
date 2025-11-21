@@ -77,8 +77,6 @@ model Office {
   name        String       @unique
   description String?
   type        ElectionType @default(FEDERAL_ESTADUAL) @map("office_type")
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
   candidates  Candidate[]
 
   @@map("offices")
@@ -94,4 +92,24 @@ model PoliticalParty {
   candidates Candidate[]
 
   @@map("political_parties")
+}
+
+model State {
+  codigoUf    Int      @id @map("codigo_uf")
+  name        String
+  abbreviation String  @unique
+  cities      City[]
+
+  @@map("states")
+}
+
+model City {
+  id        Int      @id @default(autoincrement())
+  ibgeCode  Int      @unique @map("ibge_code")
+  name      String
+  stateCode Int      @map("state_code")
+  state     State    @relation(fields: [stateCode], references: [codigoUf], onDelete: Cascade)
+
+  @@unique([name, stateCode])
+  @@map("cities")
 }

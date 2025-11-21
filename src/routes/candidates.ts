@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { PromiseStatus } from '@prisma/client';
 import prisma from '../db';
 import { formatCandidate, formatPromise } from '../utils/formatters';
 
@@ -12,7 +13,7 @@ interface CandidateRequestBody {
 interface CreatePromiseRequestBody {
   title?: string;
   description?: string | null;
-  status?: string;
+  status?: PromiseStatus | string;
   progress?: number;
 }
 
@@ -169,7 +170,7 @@ router.post(
         data: {
           title,
           description: description ?? null,
-          status: status || 'NOT_STARTED',
+          status: (status as PromiseStatus) ?? PromiseStatus.NOT_STARTED,
           progress: progressValue,
           candidateId,
         },

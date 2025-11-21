@@ -13,9 +13,7 @@ CREATE TABLE IF NOT EXISTS offices (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL UNIQUE,
   description TEXT,
-  office_type "ElectionType" NOT NULL DEFAULT 'FEDERAL_ESTADUAL',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  office_type "ElectionType" NOT NULL DEFAULT 'FEDERAL_ESTADUAL'
 );
 
 CREATE TABLE IF NOT EXISTS political_parties (
@@ -64,6 +62,51 @@ CREATE TABLE IF NOT EXISTS promise_comments (
   content TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS states (
+  codigo_uf INT PRIMARY KEY,
+  name TEXT NOT NULL,
+  abbreviation TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS cities (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  ibge_code INT NOT NULL UNIQUE,
+  state_code INT NOT NULL REFERENCES states(codigo_uf) ON DELETE CASCADE,
+  CONSTRAINT cities_name_state_code_key UNIQUE (name, state_code)
+);
+
+INSERT INTO states (codigo_uf, name, abbreviation)
+VALUES
+  (12, 'Acre', 'AC'),
+  (27, 'Alagoas', 'AL'),
+  (16, 'Amapa', 'AP'),
+  (13, 'Amazonas', 'AM'),
+  (29, 'Bahia', 'BA'),
+  (23, 'Ceara', 'CE'),
+  (53, 'Distrito Federal', 'DF'),
+  (32, 'Espirito Santo', 'ES'),
+  (52, 'Goias', 'GO'),
+  (21, 'Maranhao', 'MA'),
+  (51, 'Mato Grosso', 'MT'),
+  (50, 'Mato Grosso do Sul', 'MS'),
+  (31, 'Minas Gerais', 'MG'),
+  (15, 'Para', 'PA'),
+  (25, 'Paraiba', 'PB'),
+  (41, 'Parana', 'PR'),
+  (26, 'Pernambuco', 'PE'),
+  (22, 'Piaui', 'PI'),
+  (33, 'Rio de Janeiro', 'RJ'),
+  (24, 'Rio Grande do Norte', 'RN'),
+  (43, 'Rio Grande do Sul', 'RS'),
+  (11, 'Rondonia', 'RO'),
+  (14, 'Roraima', 'RR'),
+  (42, 'Santa Catarina', 'SC'),
+  (35, 'Sao Paulo', 'SP'),
+  (28, 'Sergipe', 'SE'),
+  (17, 'Tocantins', 'TO')
+ON CONFLICT (codigo_uf) DO NOTHING;
 
 INSERT INTO political_parties (acronym, number, name)
 VALUES

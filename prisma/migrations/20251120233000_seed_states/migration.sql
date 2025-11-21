@@ -1,0 +1,2 @@
+-- This migration was superseded by 20251120235000_seed_states_codigo_uf.
+-- No statements needed.

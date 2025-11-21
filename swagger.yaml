@@ -538,18 +538,10 @@ components:
           nullable: true
         type:
           $ref: '#/components/schemas/ElectionType'
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
       required:
         - id
         - name
         - type
-        - created_at
-        - updated_at
     CreateOfficeInput:
       type: object
       properties:

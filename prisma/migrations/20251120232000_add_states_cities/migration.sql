@@ -1,0 +1,2 @@
+-- This migration was superseded by 20251120234500_recreate_states_with_codigo_uf.
+-- No statements needed.

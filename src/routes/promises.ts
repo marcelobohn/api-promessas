@@ -1,11 +1,12 @@
 import { Router, Request, Response } from 'express';
+import { PromiseStatus } from '@prisma/client';
 import prisma from '../db';
 import { formatPromise, formatPromiseComment } from '../utils/formatters';
 
 interface UpdatePromiseRequestBody {
   title?: string;
   description?: string | null;
-  status?: string;
+  status?: PromiseStatus | string;
   progress?: number;
 }
 
@@ -40,10 +41,15 @@ router.patch('/:promiseId', async (req: Request, res: Response) => {
     return res.status(400).json({ error: (error as Error).message });
   }
 
-  const data: UpdatePromiseRequestBody = {};
+  const data: {
+    title?: string;
+    description?: string | null;
+    status?: PromiseStatus;
+    progress?: number;
+  } = {};
   if (typeof title !== 'undefined') data.title = title;
   if (typeof description !== 'undefined') data.description = description ?? null;
-  if (typeof status !== 'undefined') data.status = status;
+  if (typeof status !== 'undefined') data.status = (status as PromiseStatus) ?? PromiseStatus.NOT_STARTED;
   if (typeof parsedProgress !== 'undefined') data.progress = parsedProgress;
 
   if (Object.keys(data).length === 0) {

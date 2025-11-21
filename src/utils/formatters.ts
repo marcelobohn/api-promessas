@@ -55,8 +55,6 @@ export const formatOffice = (office: Office) => ({
   name: office.name,
   description: office.description ?? null,
   type: office.type,
-  created_at: office.createdAt,
-  updated_at: office.updatedAt,
 });
 
 export const formatCandidate = (
