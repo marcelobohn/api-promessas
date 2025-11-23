@@ -24,10 +24,27 @@ paths:
       parameters:
         - in: query
           name: electionId
-          required: false
           schema:
             type: integer
           description: Filtra candidatos por eleição
+        - in: query
+          name: officeId
+          required: true
+          schema:
+            type: integer
+          description: Filtra candidatos pelo cargo (obrigatório)
+        - in: query
+          name: state_code
+          required: false
+          schema:
+            type: integer
+          description: Filtra candidatos por estado (opcional; deve condizer com o cargo)
+        - in: query
+          name: city_id
+          required: false
+          schema:
+            type: integer
+          description: Filtra candidatos por cidade (opcional; deve condizer com o cargo)
       responses:
         '200':
           description: Lista ordenada de candidatos
@@ -236,6 +253,29 @@ paths:
                   $ref: '#/components/schemas/Office'
         '500':
           $ref: '#/components/responses/InternalError'
+    post:
+      summary: Cria um novo cargo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOfficeInput'
+      responses:
+        '201':
+          description: Cargo criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Office'
+        '400':
+          description: Dados inválidos ou nome duplicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /api/v1/states:
     get:
       summary: Lista estados
@@ -271,29 +311,6 @@ paths:
                   $ref: '#/components/schemas/City'
         '400':
           description: Falta o state_code ou está inválido
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          $ref: '#/components/responses/InternalError'
-    post:
-      summary: Cria um novo cargo
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateOfficeInput'
-      responses:
-        '201':
-          description: Cargo criado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Office'
-        '400':
-          description: Dados inválidos ou nome duplicado
           content:
             application/json:
               schema:
@@ -442,8 +459,7 @@ components:
           type: string
           nullable: true
         status:
-          type: string
-          example: IN_PROGRESS
+          $ref: '#/components/schemas/PromiseStatus'
         progress:
           type: integer
           minimum: 0
@@ -505,12 +521,16 @@ components:
           type: integer
           nullable: true
           example: 35
-          description: Obrigatório para cargos federais/estaduais quando aplicável; proibido para cargos municipais
+          description: |
+            Obrigatório para Governador, Senador, Deputado Federal e Deputado Estadual.
+            Proibido para Presidente e cargos municipais (Prefeito/Vereador).
         city_id:
           type: integer
           nullable: true
           example: 3550308
-          description: Obrigatório para cargos municipais (deve pertencer ao estado correspondente)
+          description: |
+            Obrigatório para cargos municipais (Prefeito/Vereador) e deve corresponder ao estado da cidade.
+            Proibido para Presidente e cargos estaduais/federais.
       required:
         - name
         - office_id

@@ -22,8 +22,15 @@ interface CreatePromiseRequestBody {
 const router = Router();
 
 router.get('/', async (req: Request, res: Response) => {
-  const { electionId } = req.query;
+  const { electionId, officeId, state_code, city_id } = req.query;
   let parsedElectionId: number | undefined;
+  const parsedOfficeId = Number(officeId);
+  const parsedStateCode = typeof state_code !== 'undefined' ? Number(state_code) : undefined;
+  const parsedCityId = typeof city_id !== 'undefined' ? Number(city_id) : undefined;
+
+  if (Number.isNaN(parsedOfficeId)) {
+    return res.status(400).json({ error: 'Parâmetro officeId é obrigatório e deve ser numérico.' });
+  }
 
   if (typeof electionId !== 'undefined') {
     const parsed = Number(electionId);
@@ -34,8 +41,20 @@ router.get('/', async (req: Request, res: Response) => {
   }
 
   try {
+    if (typeof parsedStateCode !== 'undefined' && Number.isNaN(parsedStateCode)) {
+      return res.status(400).json({ error: 'Parâmetro state_code inválido.' });
+    }
+    if (typeof parsedCityId !== 'undefined' && Number.isNaN(parsedCityId)) {
+      return res.status(400).json({ error: 'Parâmetro city_id inválido.' });
+    }
+
+    const where: any = { officeId: parsedOfficeId };
+    if (parsedElectionId) where.electionId = parsedElectionId;
+    if (typeof parsedStateCode === 'number' && !Number.isNaN(parsedStateCode)) where.stateCode = parsedStateCode;
+    if (typeof parsedCityId === 'number' && !Number.isNaN(parsedCityId)) where.cityId = parsedCityId;
+
     const candidates = await prisma.candidate.findMany({
-      where: parsedElectionId ? { electionId: parsedElectionId } : undefined,
+      where,
       orderBy: { id: 'asc' },
       include: { election: true, office: true, politicalParty: true, state: true, city: true },
     });
@@ -81,10 +100,20 @@ router.post('/', async (req: Request<unknown, unknown, CandidateRequestBody>, re
       return res.status(404).json({ error: 'Cargo (office) não encontrado.' });
     }
 
+    const noLocation = ['Presidente'];
+    const stateOnly = ['Governador', 'Senador', 'Deputado Federal', 'Deputado Estadual'];
+    const cityRequired = ['Prefeito', 'Vereador'];
+
     let stateCodeValue: number | null = null;
     let cityIdValue: number | null = null;
 
-    if (office.type === 'MUNICIPAL') {
+    if (noLocation.includes(office.name)) {
+      if (typeof state_code !== 'undefined' || typeof city_id !== 'undefined') {
+        return res
+          .status(400)
+          .json({ error: 'Para Presidente não informe state_code nem city_id.' });
+      }
+    } else if (cityRequired.includes(office.name) || office.type === 'MUNICIPAL') {
       if (typeof city_id !== 'number') {
         return res.status(400).json({ error: 'Para cargos municipais, city_id é obrigatório.' });
       }
@@ -95,11 +124,33 @@ router.post('/', async (req: Request<unknown, unknown, CandidateRequestBody>, re
       if (!city) {
         return res.status(404).json({ error: 'Cidade não encontrada.' });
       }
+      if (typeof state_code === 'number' && state_code !== city.stateCode) {
+        return res.status(400).json({ error: 'state_code informado não corresponde à cidade.' });
+      }
       cityIdValue = city.id;
       stateCodeValue = city.stateCode;
-    } else {
+    } else if (stateOnly.includes(office.name)) {
+      if (typeof state_code !== 'number') {
+        return res
+          .status(400)
+          .json({ error: 'Para este cargo, state_code é obrigatório e city_id não é permitido.' });
+      }
       if (typeof city_id !== 'undefined' && city_id !== null) {
-        return res.status(400).json({ error: 'city_id só é permitido para cargos municipais.' });
+        return res
+          .status(400)
+          .json({ error: 'city_id não é permitido para este cargo.' });
+      }
+      const state = await prisma.state.findUnique({ where: { codigoUf: state_code } });
+      if (!state) {
+        return res.status(404).json({ error: 'Estado não encontrado.' });
+      }
+      stateCodeValue = state.codigoUf;
+    } else {
+      // fallback: cargos federais/estaduais permitem state_code opcional, city proibido
+      if (typeof city_id !== 'undefined' && city_id !== null) {
+        return res
+          .status(400)
+          .json({ error: 'city_id só é permitido para cargos municipais.' });
       }
       if (typeof state_code === 'number') {
         const state = await prisma.state.findUnique({ where: { codigoUf: state_code } });

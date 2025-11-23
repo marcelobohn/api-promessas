@@ -25,7 +25,7 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const offices = await prisma.office.findMany({
       where: typeParam ? { type: typeParam as 'FEDERAL_ESTADUAL' | 'MUNICIPAL' } : undefined,
-      orderBy: { name: 'asc' },
+      orderBy: { id: 'asc' },
     });
     res.status(200).json(offices.map(formatOffice));
   } catch (error) {

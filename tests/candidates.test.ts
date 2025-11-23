@@ -125,7 +125,7 @@ describe('Candidate routes', () => {
     ]);
 
     const app = buildApp();
-    const response = await request(app).get('/api/v1/candidates');
+    const response = await request(app).get('/api/v1/candidates').query({ officeId: 5 });
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([
@@ -145,7 +145,7 @@ describe('Candidate routes', () => {
       },
     ]);
     expect(prismaMock.candidate.findMany).toHaveBeenCalledWith({
-      where: undefined,
+      where: { officeId: 5 },
       orderBy: { id: 'asc' },
       include: { election: true, office: true, politicalParty: true, state: true, city: true },
     });
@@ -221,7 +221,7 @@ describe('Candidate routes', () => {
   test('GET /api/v1/candidates handles errors', async () => {
     prismaMock.candidate.findMany.mockRejectedValue(new Error('db down'));
     const app = buildApp();
-    const response = await request(app).get('/api/v1/candidates');
+    const response = await request(app).get('/api/v1/candidates').query({ officeId: 5 });
 
     expect(response.status).toBe(500);
     expect(response.body).toEqual({ error: 'Erro interno do servidor' });
@@ -399,7 +399,7 @@ describe('Candidate routes', () => {
     expect(response.status).toBe(200);
     expect(prismaMock.office.findMany).toHaveBeenCalledWith({
       where: { type: 'FEDERAL_ESTADUAL' },
-      orderBy: { name: 'asc' },
+      orderBy: { id: 'asc' },
     });
     expect(response.body[0]).toMatchObject({ name: 'Governador', type: 'FEDERAL_ESTADUAL' });
   });
@@ -507,5 +507,14 @@ describe('Candidate routes', () => {
       orderBy: { name: 'asc' },
     });
     expect(response.body[0]).toMatchObject({ ibge_code: 3550308, state_code: 35 });
+  });
+
+  test('GET /api/v1/candidates exige officeId no filtro', async () => {
+    const app = buildApp();
+    const response = await request(app).get('/api/v1/candidates');
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'Parâmetro officeId é obrigatório e deve ser numérico.' });
+    expect(prismaMock.candidate.findMany).not.toHaveBeenCalled();
   });
 });
