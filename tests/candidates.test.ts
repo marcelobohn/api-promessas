@@ -118,6 +118,8 @@ describe('Candidate routes', () => {
         stateCode: 35,
         cityId: 3550308,
         city: { id: 3550308, name: 'Sao Paulo', stateCode: 35 },
+        state: { codigoUf: 35, name: 'Sao Paulo', abbreviation: 'SP' },
+        promises: [],
         createdAt: new Date('2024-01-01T00:00:00Z'),
         updatedAt: new Date('2024-01-02T00:00:00Z'),
         election: { id: 10, year: 2024 },
@@ -138,8 +140,12 @@ describe('Candidate routes', () => {
         election_id: 10,
         election_year: 2024,
         office: 'Prefeita',
+        state_name: 'Sao Paulo',
         state_code: 35,
         city_id: 3550308,
+        city_name: 'Sao Paulo',
+        promises_count: 0,
+        comments_count: 0,
         created_at: '2024-01-01T00:00:00.000Z',
         updated_at: '2024-01-02T00:00:00.000Z',
       },
@@ -147,7 +153,14 @@ describe('Candidate routes', () => {
     expect(prismaMock.candidate.findMany).toHaveBeenCalledWith({
       where: { officeId: 5 },
       orderBy: { id: 'asc' },
-      include: { election: true, office: true, politicalParty: true, state: true, city: true },
+      include: {
+        election: true,
+        office: true,
+        politicalParty: true,
+        state: true,
+        city: true,
+        promises: { select: { _count: { select: { comments: true } } } },
+      },
     });
   });
 
@@ -253,6 +266,7 @@ describe('Candidate routes', () => {
       candidate_id: 1,
       status: 'IN_PROGRESS',
       progress: 30,
+      comments_count: 0,
     });
   });
 
@@ -281,6 +295,7 @@ describe('Candidate routes', () => {
       id: 22,
       title: 'Nova promessa',
       progress: 0,
+      comments_count: 0,
       comments: [],
     });
   });
@@ -305,7 +320,7 @@ describe('Candidate routes', () => {
 
     expect(response.status).toBe(200);
     expect(prismaMock.promise.update).toHaveBeenCalled();
-    expect(response.body.status).toBe('COMPLETED');
+    expect(response.body).toMatchObject({ status: 'COMPLETED', comments_count: 0 });
   });
 
   test('POST /api/v1/promises/:id/comments cria comentário', async () => {

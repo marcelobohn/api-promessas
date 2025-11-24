@@ -420,6 +420,16 @@ components:
           type: integer
           nullable: true
           example: 3550308
+        city_name:
+          type: string
+          nullable: true
+          example: Sao Paulo
+        promises_count:
+          type: integer
+          example: 3
+        comments_count:
+          type: integer
+          example: 5
         election_id:
           type: integer
           nullable: true
@@ -431,6 +441,10 @@ components:
         office:
           type: string
           example: Prefeita
+        state_name:
+          type: string
+          nullable: true
+          example: Sao Paulo
         created_at:
           type: string
           format: date-time
@@ -464,6 +478,9 @@ components:
           type: integer
           minimum: 0
           maximum: 100
+        comments_count:
+          type: integer
+          example: 3
         created_at:
           type: string
           format: date-time

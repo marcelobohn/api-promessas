@@ -56,9 +56,27 @@ router.get('/', async (req: Request, res: Response) => {
     const candidates = await prisma.candidate.findMany({
       where,
       orderBy: { id: 'asc' },
-      include: { election: true, office: true, politicalParty: true, state: true, city: true },
+      include: {
+        election: true,
+        office: true,
+        politicalParty: true,
+        state: true,
+        city: true,
+        promises: {
+          select: {
+            _count: { select: { comments: true } },
+          },
+        },
+      },
     });
-    res.status(200).json(candidates.map(formatCandidate));
+
+    const withCounts = candidates.map((candidate) => ({
+      ...candidate,
+      commentsCount: (candidate.promises ?? []).reduce((acc, p) => acc + (p._count?.comments ?? 0), 0),
+      promisesCount: candidate.promises?.length ?? 0,
+    }));
+
+    res.status(200).json(withCounts.map(formatCandidate));
   } catch (error) {
     console.error('Erro ao buscar candidatos:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
