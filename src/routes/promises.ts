@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PromiseStatus } from '@prisma/client';
 import prisma from '../db';
+import { authenticate } from '../middlewares/auth';
 import { formatPromise, formatPromiseComment } from '../utils/formatters';
 
 interface UpdatePromiseRequestBody {
@@ -26,7 +27,7 @@ const parseProgress = (progress: number | undefined) => {
 
 const router = Router();
 
-router.patch('/:promiseId', async (req: Request, res: Response) => {
+router.patch('/:promiseId', authenticate, async (req: Request, res: Response) => {
   const promiseId = Number(req.params.promiseId);
   const { title, description, status, progress } = req.body as UpdatePromiseRequestBody;
 
@@ -70,7 +71,7 @@ router.patch('/:promiseId', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/:promiseId/comments', async (req: Request, res: Response) => {
+router.post('/:promiseId/comments', authenticate, async (req: Request, res: Response) => {
   const promiseId = Number(req.params.promiseId);
   const { content } = req.body as CreateCommentRequestBody;
 

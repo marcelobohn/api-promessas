@@ -7,6 +7,9 @@ import officeRoutes from '../src/routes/offices';
 import politicalPartyRoutes from '../src/routes/political-parties';
 import stateRoutes from '../src/routes/states';
 import cityRoutes from '../src/routes/cities';
+import authRoutes from '../src/routes/auth';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import prisma from '../src/db';
 
 jest.mock('../src/db', () => ({
@@ -45,6 +48,10 @@ jest.mock('../src/db', () => ({
     findMany: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+  },
+  user: {
+    findUnique: jest.fn(),
+    create: jest.fn(),
   },
 }));
 
@@ -85,11 +92,19 @@ const prismaMock = prisma as unknown as {
     create: jest.Mock;
     update: jest.Mock;
   };
+  user: {
+    findUnique: jest.Mock;
+    create: jest.Mock;
+  };
 };
+
+const buildToken = () =>
+  jwt.sign({ userId: 1, email: 'tester@example.com' }, process.env.JWT_SECRET || 'default_jwt_secret');
 
 const buildApp = () => {
   const app = express();
   app.use(express.json());
+  app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1/candidates', candidateRoutes);
   app.use('/api/v1/promises', promiseRoutes);
   app.use('/api/v1/elections', electionRoutes);
@@ -101,8 +116,59 @@ const buildApp = () => {
 };
 
 describe('Candidate routes', () => {
+  beforeAll(() => {
+    process.env.JWT_SECRET = 'test-secret';
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  test('POST /api/v1/auth/register cria usuário e retorna token', async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    prismaMock.user.create.mockResolvedValue({
+      id: 1,
+      name: 'Tester',
+      email: 'user@example.com',
+      passwordHash: 'hash',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const app = buildApp();
+    const response = await request(app).post('/api/v1/auth/register').send({
+      name: 'Tester',
+      email: 'USER@example.com',
+      password: '123456',
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body.token).toBeDefined();
+    expect(response.body.user).toMatchObject({ id: 1, email: 'user@example.com' });
+    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({ where: { email: 'user@example.com' } });
+    expect(prismaMock.user.create).toHaveBeenCalled();
+  });
+
+  test('POST /api/v1/auth/login autentica usuário existente', async () => {
+    const passwordHash = await bcrypt.hash('123456', 1);
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 2,
+      name: 'Tester',
+      email: 'tester@example.com',
+      passwordHash,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const app = buildApp();
+    const response = await request(app).post('/api/v1/auth/login').send({
+      email: 'tester@example.com',
+      password: '123456',
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.token).toBeDefined();
+    expect(response.body.user).toMatchObject({ id: 2, email: 'tester@example.com' });
   });
 
   test('GET /api/v1/candidates returns list ordered by id', async () => {
@@ -168,6 +234,7 @@ describe('Candidate routes', () => {
     const app = buildApp();
     const response = await request(app)
       .post('/api/v1/candidates')
+      .set('Authorization', `Bearer ${buildToken()}`)
       .send({ political_party_id: 1 });
 
     expect(response.status).toBe(400);
@@ -179,6 +246,7 @@ describe('Candidate routes', () => {
     const app = buildApp();
     const response = await request(app)
       .post('/api/v1/candidates')
+      .set('Authorization', `Bearer ${buildToken()}`)
       .send({ name: 'Bob' });
 
     expect(response.status).toBe(400);
@@ -213,6 +281,7 @@ describe('Candidate routes', () => {
     const app = buildApp();
     const response = await request(app)
       .post('/api/v1/candidates')
+      .set('Authorization', `Bearer ${buildToken()}`)
       .send({ name: 'Bob', office_id: 5, election_id: 10, political_party_id: 1, city_id: 12345 });
 
     expect(response.status).toBe(201);
@@ -287,6 +356,7 @@ describe('Candidate routes', () => {
     const app = buildApp();
     const response = await request(app)
       .post('/api/v1/candidates/1/promises')
+      .set('Authorization', `Bearer ${buildToken()}`)
       .send({ title: 'Nova promessa' });
 
     expect(response.status).toBe(201);
@@ -316,6 +386,7 @@ describe('Candidate routes', () => {
     const app = buildApp();
     const response = await request(app)
       .patch('/api/v1/promises/30')
+      .set('Authorization', `Bearer ${buildToken()}`)
       .send({ status: 'COMPLETED', progress: 100 });
 
     expect(response.status).toBe(200);
@@ -334,6 +405,7 @@ describe('Candidate routes', () => {
     const app = buildApp();
     const response = await request(app)
       .post('/api/v1/promises/30/comments')
+      .set('Authorization', `Bearer ${buildToken()}`)
       .send({ content: 'Atualização importante' });
 
     expect(response.status).toBe(201);
@@ -371,7 +443,10 @@ describe('Candidate routes', () => {
     });
 
     const app = buildApp();
-    const response = await request(app).post('/api/v1/elections').send({ year: 2026 });
+    const response = await request(app)
+      .post('/api/v1/elections')
+      .set('Authorization', `Bearer ${buildToken()}`)
+      .send({ year: 2026 });
 
     expect(response.status).toBe(201);
     expect(response.body).toMatchObject({ id: 11, year: 2026, type: 'FEDERAL_ESTADUAL' });
@@ -441,7 +516,10 @@ describe('Candidate routes', () => {
     });
 
     const app = buildApp();
-    const response = await request(app).post('/api/v1/offices').send({ name: 'Governador' });
+    const response = await request(app)
+      .post('/api/v1/offices')
+      .set('Authorization', `Bearer ${buildToken()}`)
+      .send({ name: 'Governador' });
 
     expect(response.status).toBe(201);
     expect(response.body).toMatchObject({ id: 2, name: 'Governador', type: 'FEDERAL_ESTADUAL' });
@@ -459,9 +537,15 @@ describe('Candidate routes', () => {
 
     const app = buildApp();
     const response = await request(app).patch('/api/v1/offices/2').send({ description: 'Atualizado' });
+    expect(response.status).toBe(401);
 
-    expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({ id: 2, description: 'Atualizado' });
+    const authedResponse = await request(app)
+      .patch('/api/v1/offices/2')
+      .set('Authorization', `Bearer ${buildToken()}`)
+      .send({ description: 'Atualizado' });
+
+    expect(authedResponse.status).toBe(200);
+    expect(authedResponse.body).toMatchObject({ id: 2, description: 'Atualizado' });
   });
 
   test('GET /api/v1/political-parties retorna partidos', async () => {

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../db';
+import { authenticate } from '../middlewares/auth';
 import { formatElection } from '../utils/formatters';
 
 interface CreateElectionRequest {
@@ -21,7 +22,7 @@ router.get('/', async (_req: Request, res: Response) => {
   }
 });
 
-router.post('/', async (req: Request<unknown, unknown, CreateElectionRequest>, res: Response) => {
+router.post('/', authenticate, async (req: Request<unknown, unknown, CreateElectionRequest>, res: Response) => {
   const { year, description } = req.body;
 
   if (typeof year !== 'number') {

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../db';
+import { authenticate } from '../middlewares/auth';
 import { formatOffice } from '../utils/formatters';
 
 interface CreateOfficeRequest {
@@ -34,7 +35,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/', async (req: Request<unknown, unknown, CreateOfficeRequest>, res: Response) => {
+router.post('/', authenticate, async (req: Request<unknown, unknown, CreateOfficeRequest>, res: Response) => {
   const { name, description } = req.body;
 
   if (!name) {
@@ -58,6 +59,7 @@ router.post('/', async (req: Request<unknown, unknown, CreateOfficeRequest>, res
 
 router.patch(
   '/:officeId',
+  authenticate,
   async (req: Request<{ officeId: string }, unknown, UpdateOfficeRequest>, res: Response) => {
     const officeId = Number(req.params.officeId);
 

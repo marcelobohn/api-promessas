@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PromiseStatus } from '@prisma/client';
 import prisma from '../db';
+import { authenticate } from '../middlewares/auth';
 import { formatCandidate, formatPromise } from '../utils/formatters';
 
 interface CandidateRequestBody {
@@ -83,7 +84,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/', async (req: Request<unknown, unknown, CandidateRequestBody>, res: Response) => {
+router.post('/', authenticate, async (req: Request<unknown, unknown, CandidateRequestBody>, res: Response) => {
   const { name, political_party_id, election_id, office_id, state_code, city_id } = req.body;
 
   if (!name) {
@@ -243,6 +244,7 @@ router.get('/:candidateId/promises', async (req: Request, res: Response) => {
 
 router.post(
   '/:candidateId/promises',
+  authenticate,
   async (req: Request<{ candidateId: string }, unknown, CreatePromiseRequestBody>, res: Response) => {
     const candidateId = Number(req.params.candidateId);
     const { title, description, status, progress } = req.body;
