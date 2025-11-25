@@ -1,174 +1,9 @@
 import request from 'supertest';
-import express from 'express';
-import candidateRoutes from '../src/routes/candidates';
-import promiseRoutes from '../src/routes/promises';
-import electionRoutes from '../src/routes/elections';
-import officeRoutes from '../src/routes/offices';
-import politicalPartyRoutes from '../src/routes/political-parties';
-import stateRoutes from '../src/routes/states';
-import cityRoutes from '../src/routes/cities';
-import authRoutes from '../src/routes/auth';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import prisma from '../src/db';
-
-jest.mock('../src/db', () => ({
-  candidate: {
-    findMany: jest.fn(),
-    create: jest.fn(),
-    findUnique: jest.fn(),
-  },
-  city: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-  },
-  state: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-  },
-  promise: {
-    findMany: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-  },
-  promiseComment: {
-    create: jest.fn(),
-  },
-  election: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-  },
-  politicalParty: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-  },
-  office: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-  },
-  user: {
-    findUnique: jest.fn(),
-    create: jest.fn(),
-  },
-}));
-
-const prismaMock = prisma as unknown as {
-  candidate: {
-    findMany: jest.Mock;
-    create: jest.Mock;
-    findUnique: jest.Mock;
-  };
-  city: {
-    findUnique: jest.Mock;
-    findMany: jest.Mock;
-  };
-  state: {
-    findUnique: jest.Mock;
-    findMany: jest.Mock;
-  };
-  promise: {
-    findMany: jest.Mock;
-    create: jest.Mock;
-    update: jest.Mock;
-  };
-  promiseComment: {
-    create: jest.Mock;
-  };
-  election: {
-    findUnique: jest.Mock;
-    findMany: jest.Mock;
-    create: jest.Mock;
-  };
-  politicalParty: {
-    findUnique: jest.Mock;
-    findMany: jest.Mock;
-  };
-  office: {
-    findUnique: jest.Mock;
-    findMany: jest.Mock;
-    create: jest.Mock;
-    update: jest.Mock;
-  };
-  user: {
-    findUnique: jest.Mock;
-    create: jest.Mock;
-  };
-};
-
-const buildToken = () =>
-  jwt.sign({ userId: 1, email: 'tester@example.com' }, process.env.JWT_SECRET || 'default_jwt_secret');
-
-const buildApp = () => {
-  const app = express();
-  app.use(express.json());
-  app.use('/api/v1/auth', authRoutes);
-  app.use('/api/v1/candidates', candidateRoutes);
-  app.use('/api/v1/promises', promiseRoutes);
-  app.use('/api/v1/elections', electionRoutes);
-  app.use('/api/v1/offices', officeRoutes);
-  app.use('/api/v1/political-parties', politicalPartyRoutes);
-  app.use('/api/v1/states', stateRoutes);
-  app.use('/api/v1/cities', cityRoutes);
-  return app;
-};
+import { buildApp, buildToken, prismaMock } from './helpers/app';
 
 describe('Candidate routes', () => {
-  beforeAll(() => {
-    process.env.JWT_SECRET = 'test-secret';
-  });
-
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  test('POST /api/v1/auth/register cria usuário e retorna token', async () => {
-    prismaMock.user.findUnique.mockResolvedValue(null);
-    prismaMock.user.create.mockResolvedValue({
-      id: 1,
-      name: 'Tester',
-      email: 'user@example.com',
-      passwordHash: 'hash',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    const app = buildApp();
-    const response = await request(app).post('/api/v1/auth/register').send({
-      name: 'Tester',
-      email: 'USER@example.com',
-      password: '123456',
-    });
-
-    expect(response.status).toBe(201);
-    expect(response.body.token).toBeDefined();
-    expect(response.body.user).toMatchObject({ id: 1, email: 'user@example.com' });
-    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({ where: { email: 'user@example.com' } });
-    expect(prismaMock.user.create).toHaveBeenCalled();
-  });
-
-  test('POST /api/v1/auth/login autentica usuário existente', async () => {
-    const passwordHash = await bcrypt.hash('123456', 1);
-    prismaMock.user.findUnique.mockResolvedValue({
-      id: 2,
-      name: 'Tester',
-      email: 'tester@example.com',
-      passwordHash,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    const app = buildApp();
-    const response = await request(app).post('/api/v1/auth/login').send({
-      email: 'tester@example.com',
-      password: '123456',
-    });
-
-    expect(response.status).toBe(200);
-    expect(response.body.token).toBeDefined();
-    expect(response.body.user).toMatchObject({ id: 2, email: 'tester@example.com' });
   });
 
   test('GET /api/v1/candidates returns list ordered by id', async () => {
@@ -256,7 +91,6 @@ describe('Candidate routes', () => {
   test('POST /api/v1/candidates creates a candidate', async () => {
     prismaMock.election.findUnique.mockResolvedValue({ id: 10, year: 2024 });
     prismaMock.office.findUnique.mockResolvedValue({ id: 5, name: 'Vereador', type: 'MUNICIPAL' });
-    prismaMock.politicalParty = prismaMock.politicalParty || { findUnique: jest.fn() };
     prismaMock.politicalParty.findUnique.mockResolvedValue({ id: 1, acronym: 'MDB' });
     prismaMock.city.findUnique.mockResolvedValue({ id: 12345, stateCode: 35 });
     const createdCandidate = {
@@ -298,6 +132,21 @@ describe('Candidate routes', () => {
       city_id: 12345,
       state_code: 35,
     });
+  });
+
+  test('POST /api/v1/candidates valida state_code da cidade', async () => {
+    prismaMock.election.findUnique.mockResolvedValue({ id: 10, year: 2024 });
+    prismaMock.office.findUnique.mockResolvedValue({ id: 5, name: 'Vereador', type: 'MUNICIPAL' });
+    prismaMock.city.findUnique.mockResolvedValue({ id: 12345, stateCode: 35 });
+
+    const app = buildApp();
+    const response = await request(app)
+      .post('/api/v1/candidates')
+      .set('Authorization', `Bearer ${buildToken()}`)
+      .send({ name: 'Bob', office_id: 5, election_id: 10, city_id: 12345, state_code: 99 });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'state_code informado não corresponde à cidade.' });
   });
 
   test('GET /api/v1/candidates handles errors', async () => {
@@ -368,244 +217,6 @@ describe('Candidate routes', () => {
       comments_count: 0,
       comments: [],
     });
-  });
-
-  test('PATCH /api/v1/promises/:id atualiza promessa', async () => {
-    prismaMock.promise.update.mockResolvedValue({
-      id: 30,
-      candidateId: 1,
-      title: 'Promessa atualizada',
-      description: null,
-      status: 'COMPLETED',
-      progress: 100,
-      createdAt: new Date('2024-05-01T00:00:00Z'),
-      updatedAt: new Date('2024-05-02T00:00:00Z'),
-      comments: [],
-    });
-
-    const app = buildApp();
-    const response = await request(app)
-      .patch('/api/v1/promises/30')
-      .set('Authorization', `Bearer ${buildToken()}`)
-      .send({ status: 'COMPLETED', progress: 100 });
-
-    expect(response.status).toBe(200);
-    expect(prismaMock.promise.update).toHaveBeenCalled();
-    expect(response.body).toMatchObject({ status: 'COMPLETED', comments_count: 0 });
-  });
-
-  test('POST /api/v1/promises/:id/comments cria comentário', async () => {
-    prismaMock.promiseComment.create.mockResolvedValue({
-      id: 5,
-      promiseId: 30,
-      content: 'Atualização importante',
-      createdAt: new Date('2024-06-01T00:00:00Z'),
-    });
-
-    const app = buildApp();
-    const response = await request(app)
-      .post('/api/v1/promises/30/comments')
-      .set('Authorization', `Bearer ${buildToken()}`)
-      .send({ content: 'Atualização importante' });
-
-    expect(response.status).toBe(201);
-    expect(prismaMock.promiseComment.create).toHaveBeenCalled();
-    expect(response.body.content).toBe('Atualização importante');
-  });
-
-  test('GET /api/v1/elections retorna eleições', async () => {
-    prismaMock.election.findMany.mockResolvedValue([
-      {
-        id: 10,
-        year: 2024,
-        description: 'Municipais',
-        type: 'MUNICIPAL',
-        createdAt: new Date('2023-01-01T00:00:00Z'),
-        updatedAt: new Date('2023-01-01T00:00:00Z'),
-      },
-    ]);
-
-    const app = buildApp();
-    const response = await request(app).get('/api/v1/elections');
-
-    expect(response.status).toBe(200);
-    expect(response.body[0]).toMatchObject({ id: 10, year: 2024, type: 'MUNICIPAL' });
-  });
-
-  test('POST /api/v1/elections cria eleição', async () => {
-    prismaMock.election.create.mockResolvedValue({
-      id: 11,
-      year: 2026,
-      description: null,
-      type: 'FEDERAL_ESTADUAL',
-      createdAt: new Date('2025-01-01T00:00:00Z'),
-      updatedAt: new Date('2025-01-01T00:00:00Z'),
-    });
-
-    const app = buildApp();
-    const response = await request(app)
-      .post('/api/v1/elections')
-      .set('Authorization', `Bearer ${buildToken()}`)
-      .send({ year: 2026 });
-
-    expect(response.status).toBe(201);
-    expect(response.body).toMatchObject({ id: 11, year: 2026, type: 'FEDERAL_ESTADUAL' });
-  });
-
-  test('GET /api/v1/offices retorna cargos', async () => {
-    prismaMock.office.findMany.mockResolvedValue([
-      {
-        id: 1,
-        name: 'Prefeito',
-        description: null,
-        type: 'MUNICIPAL',
-        createdAt: new Date('2024-01-01T00:00:00Z'),
-        updatedAt: new Date('2024-01-01T00:00:00Z'),
-      },
-    ]);
-
-    const app = buildApp();
-    const response = await request(app).get('/api/v1/offices');
-
-    expect(response.status).toBe(200);
-    expect(response.body[0]).toMatchObject({ id: 1, name: 'Prefeito', type: 'MUNICIPAL' });
-  });
-
-  test('GET /api/v1/offices filtra por tipo', async () => {
-    prismaMock.office.findMany.mockResolvedValue([
-      {
-        id: 2,
-        name: 'Governador',
-        description: null,
-        type: 'FEDERAL_ESTADUAL',
-        createdAt: new Date('2024-02-01T00:00:00Z'),
-        updatedAt: new Date('2024-02-01T00:00:00Z'),
-      },
-    ]);
-
-    const app = buildApp();
-    const response = await request(app).get('/api/v1/offices').query({ type: 'FEDERAL_ESTADUAL' });
-
-    expect(response.status).toBe(200);
-    expect(prismaMock.office.findMany).toHaveBeenCalledWith({
-      where: { type: 'FEDERAL_ESTADUAL' },
-      orderBy: { id: 'asc' },
-    });
-    expect(response.body[0]).toMatchObject({ name: 'Governador', type: 'FEDERAL_ESTADUAL' });
-  });
-
-  test('GET /api/v1/offices rejeita tipo inválido', async () => {
-    const app = buildApp();
-    const response = await request(app).get('/api/v1/offices').query({ type: 'INVALIDO' });
-
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({
-      error: 'Tipo de eleição inválido. Use FEDERAL_ESTADUAL ou MUNICIPAL.',
-    });
-    expect(prismaMock.office.findMany).not.toHaveBeenCalled();
-  });
-
-  test('POST /api/v1/offices cria cargo', async () => {
-    prismaMock.office.create.mockResolvedValue({
-      id: 2,
-      name: 'Governador',
-      description: null,
-      type: 'FEDERAL_ESTADUAL',
-      createdAt: new Date('2024-02-01T00:00:00Z'),
-      updatedAt: new Date('2024-02-01T00:00:00Z'),
-    });
-
-    const app = buildApp();
-    const response = await request(app)
-      .post('/api/v1/offices')
-      .set('Authorization', `Bearer ${buildToken()}`)
-      .send({ name: 'Governador' });
-
-    expect(response.status).toBe(201);
-    expect(response.body).toMatchObject({ id: 2, name: 'Governador', type: 'FEDERAL_ESTADUAL' });
-  });
-
-  test('PATCH /api/v1/offices/:id atualiza cargo', async () => {
-    prismaMock.office.update.mockResolvedValue({
-      id: 2,
-      name: 'Governador',
-      description: 'Atualizado',
-      type: 'FEDERAL_ESTADUAL',
-      createdAt: new Date('2024-02-01T00:00:00Z'),
-      updatedAt: new Date('2024-03-01T00:00:00Z'),
-    });
-
-    const app = buildApp();
-    const response = await request(app).patch('/api/v1/offices/2').send({ description: 'Atualizado' });
-    expect(response.status).toBe(401);
-
-    const authedResponse = await request(app)
-      .patch('/api/v1/offices/2')
-      .set('Authorization', `Bearer ${buildToken()}`)
-      .send({ description: 'Atualizado' });
-
-    expect(authedResponse.status).toBe(200);
-    expect(authedResponse.body).toMatchObject({ id: 2, description: 'Atualizado' });
-  });
-
-  test('GET /api/v1/political-parties retorna partidos', async () => {
-    prismaMock.politicalParty.findMany.mockResolvedValue([
-      {
-        id: 1,
-        acronym: 'MDB',
-        number: 15,
-        name: 'MOVIMENTO DEMOCRATICO BRASILEIRO',
-        createdAt: new Date('2024-01-01T00:00:00Z'),
-        updatedAt: new Date('2024-01-02T00:00:00Z'),
-      },
-    ]);
-
-    const app = buildApp();
-    const response = await request(app).get('/api/v1/political-parties');
-
-    expect(response.status).toBe(200);
-    expect(prismaMock.politicalParty.findMany).toHaveBeenCalledWith({
-      orderBy: [{ number: 'asc' }, { acronym: 'asc' }],
-    });
-    expect(response.body[0]).toMatchObject({ acronym: 'MDB', number: 15 });
-  });
-
-  test('GET /api/v1/states retorna estados', async () => {
-    prismaMock.state.findMany.mockResolvedValue([
-      { codigoUf: 35, name: 'Sao Paulo', abbreviation: 'SP' },
-    ]);
-
-    const app = buildApp();
-    const response = await request(app).get('/api/v1/states');
-
-    expect(response.status).toBe(200);
-    expect(prismaMock.state.findMany).toHaveBeenCalledWith({ orderBy: { abbreviation: 'asc' } });
-    expect(response.body[0]).toMatchObject({ codigo_uf: 35, abbreviation: 'SP' });
-  });
-
-  test('GET /api/v1/cities exige state_code', async () => {
-    const app = buildApp();
-    const response = await request(app).get('/api/v1/cities');
-
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({ error: 'Parâmetro state_code é obrigatório e deve ser numérico.' });
-    expect(prismaMock.city.findMany).not.toHaveBeenCalled();
-  });
-
-  test('GET /api/v1/cities retorna cidades por estado', async () => {
-    prismaMock.city.findMany.mockResolvedValue([
-      { id: 1, ibgeCode: 3550308, name: 'Sao Paulo', stateCode: 35 },
-    ]);
-
-    const app = buildApp();
-    const response = await request(app).get('/api/v1/cities').query({ state_code: 35 });
-
-    expect(response.status).toBe(200);
-    expect(prismaMock.city.findMany).toHaveBeenCalledWith({
-      where: { stateCode: 35 },
-      orderBy: { name: 'asc' },
-    });
-    expect(response.body[0]).toMatchObject({ ibge_code: 3550308, state_code: 35 });
   });
 
   test('GET /api/v1/candidates exige officeId no filtro', async () => {

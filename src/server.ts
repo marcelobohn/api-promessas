@@ -5,14 +5,14 @@ import fs from 'fs';
 import YAML from 'yaml';
 import swaggerUi from 'swagger-ui-express';
 import cors from 'cors';
-import candidateRoutes from './routes/candidates';
-import promiseRoutes from './routes/promises';
-import electionRoutes from './routes/elections';
-import officeRoutes from './routes/offices';
-import politicalPartyRoutes from './routes/political-parties';
-import stateRoutes from './routes/states';
-import cityRoutes from './routes/cities';
-import authRoutes from './routes/auth';
+import candidateRoutes from './modules/candidates/routes';
+import promiseRoutes from './modules/promises/routes';
+import electionRoutes from './modules/elections/routes';
+import officeRoutes from './modules/offices/routes';
+import politicalPartyRoutes from './modules/political-parties/routes';
+import stateRoutes from './modules/states/routes';
+import cityRoutes from './modules/cities/routes';
+import authRoutes from './modules/auth/routes';
 
 dotenv.config();
 

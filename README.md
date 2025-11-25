@@ -5,18 +5,22 @@ API escrita em TypeScript (Node.js/Express) para cadastrar e consultar promessas
 ## Visão geral
 - **Stack:** Node.js, TypeScript, Express, Prisma ORM e PostgreSQL.
 - **Persistência:** Prisma Client configurado via variáveis de ambiente (`DATABASE_URL` e POSTGRES_*).
-- **Rotas principais:**
+- **Autenticação:** JWT; rotas de escrita exigem `Authorization: Bearer <token>`; rotas de leitura são públicas.
+- **Principais rotas:**
   - `GET /` – ping da API.
-  - `GET /api/v1/candidates` – lista todos os candidatos.
-  - `POST /api/v1/candidates` – cria um novo candidato (`name` e `office_id` obrigatórios; `political_party` e `election_id` opcionais).
+  - `POST /api/v1/auth/register` – cria usuário e retorna token.
+  - `POST /api/v1/auth/login` – autentica e retorna token.
+  - `GET /api/v1/candidates` – lista candidatos (filtro `officeId` obrigatório).
+  - `POST /api/v1/candidates` – cria candidato (token obrigatório).
   - `GET /api/v1/candidates/:candidateId/promises` – lista promessas de um candidato.
-  - `POST /api/v1/candidates/:candidateId/promises` – cadastra uma promessa com status e percentual.
-  - `PATCH /api/v1/promises/:promiseId` – atualiza status, progresso ou descrição.
-  - `POST /api/v1/promises/:promiseId/comments` – adiciona comentários de andamento.
-  - `GET /api/v1/elections` – lista eleições cadastradas.
-  - `POST /api/v1/elections` – cria uma eleição (ano + descrição).
-  - `GET /api/v1/offices` – lista cargos disponíveis.
-  - `POST /api/v1/offices` e `PATCH /api/v1/offices/:officeId` – cadastram/atualizam cargos.
+  - `POST /api/v1/candidates/:candidateId/promises` – cria promessa (token obrigatório).
+  - `PATCH /api/v1/promises/:promiseId` – atualiza status/progresso/descrição (token obrigatório).
+  - `POST /api/v1/promises/:promiseId/comments` – adiciona comentários (token obrigatório).
+  - `GET /api/v1/elections` / `POST /api/v1/elections` – lista/cria eleições (POST exige token).
+  - `GET /api/v1/offices` / `POST` / `PATCH` – lista/cria/atualiza cargos (escrita exige token).
+  - `GET /api/v1/political-parties` – lista partidos.
+  - `GET /api/v1/states` – lista estados.
+  - `GET /api/v1/cities?state_code=` – lista cidades pelo estado.
 
 ## Requisitos
 - Node.js 20+ e npm 10+ (para desenvolvimento local).
@@ -33,9 +37,9 @@ API escrita em TypeScript (Node.js/Express) para cadastrar e consultar promessas
    cp .env.example .env
    # Edite POSTGRES_* e DATABASE_URL conforme sua instância local
    ```
-3. Garanta que o banco tenha a tabela `candidates`:
-   - Com PostgreSQL local: `npm run prisma:db:push` (usa `DATABASE_URL`).
-   - Em Docker: `docker compose up -d` executará `db/init.sql` na primeira inicialização do volume.
+3. Garanta o schema do banco:
+   - PostgreSQL local: `npm run prisma:db:push` (usa `DATABASE_URL`).
+   - Docker: `docker compose up -d` executa `db/init.sql` na primeira inicialização do volume.
 4. Execute em modo desenvolvimento:
    ```bash
    npm run dev
@@ -48,11 +52,9 @@ API escrita em TypeScript (Node.js/Express) para cadastrar e consultar promessas
 > Sempre que alterar `prisma/schema.prisma`, rode `npm run prisma:generate` para atualizar o client.
 
 ## Testes
-Execute toda a suíte com:
-```bash
-npm test
-```
-Os testes usam Jest + Supertest e mockam o Prisma Client, portanto não precisam de banco em execução.
+- Rodar toda a suíte: `npm test`
+- Cobertura: `npm run test:coverage` (gera relatório em `coverage/`)
+Os testes usam Jest + Supertest e mockam o Prisma Client; não precisam de banco em execução.
 
 ## Documentação Swagger
 - Arquivo base: `swagger.yaml`.
@@ -103,26 +105,27 @@ docker compose down -v
 ```
 > **Atenção:** o comando acima remove os dados persistidos no volume `pgdata`.
 
-## Estrutura de diretórios
+## Estrutura de diretórios (resumo)
 ```
 .
-├── db
-│   └── init.sql           # Script SQL inicial (aplicado pelo Postgres do Docker)
-├── prisma
-│   └── schema.prisma      # Definição dos modelos do Prisma (candidatos, promessas, comentários)
-├── src
-│   ├── db.ts              # Instância do Prisma Client
-│   ├── routes
-│   │   ├── candidates.ts  # Rotas de candidatos + promessas por candidato
-│   │   ├── promises.ts    # Rotas de atualização/comentários das promessas
-│   │   ├── elections.ts   # CRUD básico de eleições
-│   │   └── offices.ts     # CRUD básico de cargos
-│   ├── utils
-│   │   └── formatters.ts  # Converte entidades Prisma para o contrato da API
-│   └── server.ts          # Entrada principal da API
-├── Dockerfile             # Build da API em Node 20 Alpine
-├── docker-compose.yml     # Orquestração da API + PostgreSQL
-├── .env.example           # Template das variáveis de ambiente
+├── db/                     # Script SQL inicial
+├── prisma/                 # schema.prisma e migrations
+├── src/
+│   ├── core/               # Errors/helpers compartilhados
+│   ├── middlewares/        # Ex.: auth (JWT)
+│   ├── modules/            # Domínios organizados em camadas (routes/controllers/service/repository/schemas)
+│   │   ├── auth/
+│   │   ├── candidates/
+│   │   ├── promises/
+│   │   ├── elections/
+│   │   ├── offices/
+│   │   ├── political-parties/
+│   │   ├── states/
+│   │   └── cities/
+│   ├── utils/formatters.ts # Converte Prisma -> contrato da API
+│   └── server.ts           # Entrada principal da API
+├── tests/                  # Testes por domínio + helpers
+├── Dockerfile / docker-compose.yml
 └── README.md
 ```
 

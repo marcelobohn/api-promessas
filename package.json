@@ -10,7 +10,8 @@
     "openapi:generate": "openapi --input ./swagger.yaml --output ./src/generated",
     "prisma:generate": "prisma generate",
     "prisma:db:push": "prisma db push",
-    "test": "jest"
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [],
   "author": "",
