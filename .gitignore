@@ -23,3 +23,10 @@ logs
 
 # VS Code
 .vscode/
+
+# Gatling load tests (sbt)
+load-tests/gatling/target/
+load-tests/gatling/project/target/
+load-tests/gatling/project/project/target/
+load-tests/gatling/.bsp/
+load-tests/gatling/results/

@@ -56,6 +56,17 @@ API escrita em TypeScript (Node.js/Express) para cadastrar e consultar promessas
 - Cobertura: `npm run test:coverage` (gera relatório em `coverage/`)
 Os testes usam Jest + Supertest e mockam o Prisma Client; não precisam de banco em execução.
 
+## Testes de carga (Gatling)
+- Pré-requisitos: Java 11+ e sbt instalados.
+- Local dos cenários: `load-tests/gatling/src/test/scala/CandidateFlowSimulation.scala`.
+- Como rodar (API ouvindo, ex.: `http://localhost:3000`):
+  ```bash
+  cd load-tests/gatling
+  sbt -DbaseUrl=http://localhost:3000 "test:runMain Engine"
+  ```
+  O parâmetro `baseUrl` é opcional; se omitido, usa `http://localhost:3000`.
+- Resultados: gerados em `load-tests/gatling/results/<run-id>/index.html` (abra o HTML para ver o relatório).
+
 ## Documentação Swagger
 - Arquivo base: `swagger.yaml`.
 - Endpoint HTML: acesse `http://localhost:3000/docs` para visualizar o Swagger UI embutido.
