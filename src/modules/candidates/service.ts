@@ -13,6 +13,7 @@ import {
   findPromisesByCandidate,
   findStateByCode,
 } from './repository';
+import { getCache, setCache, delByPattern } from '../../infra/cache';
 import { CandidateQuery, CreateCandidateInput, CreatePromiseInput } from './schemas';
 
 export const listCandidates = async (filters: CandidateQuery) => {
@@ -20,11 +21,22 @@ export const listCandidates = async (filters: CandidateQuery) => {
   if (filters.electionId) where.electionId = filters.electionId;
   if (typeof filters.state_code === 'number' && !Number.isNaN(filters.state_code)) where.stateCode = filters.state_code;
   if (typeof filters.city_id === 'number' && !Number.isNaN(filters.city_id)) where.cityId = filters.city_id;
-
-  const candidates = await findCandidates(where);
+  const cacheKey = `candidates:${JSON.stringify(where)}`;
+  const cached = await getCache<any[]>(cacheKey);
+  let candidates;
+  if (cached) {
+    candidates = cached;
+  } else {
+    candidates = await findCandidates(where);
+    // cache results for a short time (configurable via env CANDIDATES_CACHE_TTL)
+    await setCache(cacheKey, candidates, Number(process.env.CANDIDATES_CACHE_TTL ?? 60));
+  }
   const withCounts = candidates.map((candidate) => ({
     ...candidate,
-    commentsCount: (candidate.promises ?? []).reduce((acc, p) => acc + (p._count?.comments ?? 0), 0),
+    commentsCount: (candidate.promises ?? []).reduce(
+      (acc: number, p: { _count?: { comments?: number } }) => acc + (p._count?.comments ?? 0),
+      0
+    ),
     promisesCount: candidate.promises?.length ?? 0,
   }));
 
@@ -115,6 +127,9 @@ export const createNewCandidate = async (input: CreateCandidateInput) => {
     cityId: cityIdValue,
   });
 
+  // invalidate cached candidate lists
+  await delByPattern('candidates:*');
+
   return formatCandidate(candidate);
 };
 
@@ -155,6 +170,9 @@ export const createCandidatePromise = async (
     progress: progressValue,
     candidateId,
   });
+
+  // invalidate cached candidate lists (promises count changed)
+  await delByPattern('candidates:*');
 
   return formatPromise(promise);
 };

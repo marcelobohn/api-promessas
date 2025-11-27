@@ -63,6 +63,7 @@ Os testes usam Jest + Supertest e mockam o Prisma Client; não precisam de banco
   ```bash
   cd load-tests/gatling
   sbt -DbaseUrl=http://localhost:3000 "test:runMain Engine"
+  sbt -DbaseUrl=http://localhost:3000 "test:runMain EngineHeavy"
   ```
   O parâmetro `baseUrl` é opcional; se omitido, usa `http://localhost:3000`.
 - Resultados: gerados em `load-tests/gatling/results/<run-id>/index.html` (abra o HTML para ver o relatório).
@@ -109,6 +110,35 @@ Os testes usam Jest + Supertest e mockam o Prisma Client; não precisam de banco
    - Serviço `postgres` expõe `5432` e executa `db/init.sql` na primeira inicialização.
    - Serviço `api` é construído a partir do `Dockerfile` e lê as mesmas variáveis do `.env`.
 3. Acesse `http://localhost:3000` (ou a porta definida em `APP_PORT`).
+
+**Logs dos Containers**
+- **Ver todos:** mostra logs de todos os serviços em tempo real.
+
+   ```bash
+   docker compose logs -f
+   ```
+- **Ver logs de um serviço específico:** segue apenas os logs do serviço desejado (ex.: `api`, `postgres`, `redis`).
+
+   ```bash
+   docker compose logs -f api
+   docker compose logs -f postgres
+   docker compose logs -f redis
+   ```
+- **Mostrar últimas N linhas:** útil para revisar histórico recente antes de seguir.
+
+   ```bash
+   docker compose logs --tail=200 api
+   ```
+- **Alternativa (nome do container):** usar `docker logs` quando souber o nome do container (ex.: `promessas-redis`).
+
+   ```bash
+   docker logs -f promessas-redis
+   docker logs --tail 100 promessas-postgres
+   ```
+- **Dicas rápidas:**
+   - Use `-f` para seguir (stream) os logs em tempo real.
+   - Para reiniciar e ver logs limpos, faça `docker compose down && docker compose up -d --build`.
+   - Se um serviço não aparece nos logs, verifique `docker compose ps` para estado e `docker compose logs <service>` para erros de inicialização.
 
 Caso precise reinicializar o banco (por exemplo, para reaplicar `db/init.sql` ou alterar credenciais), use:
 ```bash

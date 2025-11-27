@@ -4,10 +4,18 @@ services:
     container_name: api-promessas
     env_file:
       - .env
+    environment:
+      - REDIS_URL=redis://redis:6379
     ports:
       - "${APP_PORT:-3000}:${APP_PORT:-3000}"
     depends_on:
       - postgres
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "0.5GB"    
 
   postgres:
     image: postgres:16-alpine
@@ -20,3 +28,26 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "0.7"
+          memory: "1GB"      
+
+  redis:
+    image: redis:7-alpine
+    container_name: promessas-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: "0.5GB"
+
+volumes:
+  redis-data:
+    driver: local
