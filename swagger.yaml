@@ -601,6 +601,10 @@ components:
         name:
           type: string
           example: Maria Silva
+        number:
+          type: integer
+          nullable: true
+          example: 123
         political_party_id:
           type: integer
           nullable: true
@@ -723,6 +727,9 @@ components:
         name:
           type: string
           example: João Souza
+        number:
+          type: integer
+          example: 123
         political_party_id:
           type: integer
           nullable: true
@@ -751,6 +758,7 @@ components:
       required:
         - name
         - office_id
+        - number
     CreatePromiseInput:
       type: object
       properties:

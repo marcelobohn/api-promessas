@@ -25,6 +25,7 @@ model Candidate {
   state            State?          @relation("CandidateState", fields: [stateCode], references: [codigoUf], onDelete: SetNull)
   cityId           Int?            @map("city_id")
   city             City?           @relation("CandidateCity", fields: [cityId], references: [id], onDelete: SetNull)
+  number           Int?
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
   promises         Promise[]

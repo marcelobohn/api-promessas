@@ -3,6 +3,7 @@ import { Candidate, Election, Office, Promise as CampaignPromise, PromiseComment
 export interface CandidateResponse {
   id: number;
   name: string;
+  number: number | null;
   political_party_id: number | null;
   political_party: string | null;
   office_id: number;
@@ -97,6 +98,7 @@ export const formatCandidate = (
   office: candidate.office?.name ?? '',
   election_id: candidate.electionId ?? null,
   election_year: candidate.election?.year ?? null,
+  number: candidate.number ?? null,
   state_code: candidate.stateCode ?? candidate.state?.codigoUf ?? null,
   state_name: candidate.state?.name ?? null,
   city_id: candidate.cityId ?? candidate.city?.id ?? null,

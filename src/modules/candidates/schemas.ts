@@ -10,6 +10,7 @@ export interface CandidateQuery {
 
 export interface CreateCandidateInput {
   name?: string;
+  number?: number | null;
   political_party_id?: number | null;
   election_id?: number | null;
   office_id?: number | null;
@@ -63,9 +64,12 @@ export const validateCreateCandidate = (body: CreateCandidateInput) => {
   if (!body.name) {
     throw new ValidationError('Nome é obrigatório.');
   }
-
   if (typeof body.office_id !== 'number') {
     throw new ValidationError('office_id é obrigatório.');
+  }
+
+  if (typeof body.number !== 'number') {
+    throw new ValidationError('Número do candidato é obrigatório e deve ser numérico.');
   }
 
   const invalidNumberFields =
@@ -73,6 +77,7 @@ export const validateCreateCandidate = (body: CreateCandidateInput) => {
     (typeof body.political_party_id !== 'undefined' &&
       body.political_party_id !== null &&
       typeof body.political_party_id !== 'number') ||
+    (typeof body.number !== 'undefined' && body.number !== null && typeof body.number !== 'number') ||
     (typeof body.state_code !== 'undefined' && body.state_code !== null && typeof body.state_code !== 'number') ||
     (typeof body.city_id !== 'undefined' && body.city_id !== null && typeof body.city_id !== 'number');
 

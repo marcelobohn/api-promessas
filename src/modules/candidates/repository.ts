@@ -24,6 +24,7 @@ export const createCandidate = (data: {
   politicalPartyId: number | null;
   electionId: number | null;
   officeId: number;
+  number?: number | null;
   stateCode: number | null;
   cityId: number | null;
 }) => {

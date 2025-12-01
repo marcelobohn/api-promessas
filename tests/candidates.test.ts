@@ -11,6 +11,7 @@ describe('Candidate routes', () => {
       {
         id: 1,
         name: 'Alice',
+        number: null,
         politicalPartyId: 99,
         politicalParty: { id: 99, acronym: 'ABC' },
         electionId: 10,
@@ -34,6 +35,7 @@ describe('Candidate routes', () => {
     expect(response.body).toEqual([
       {
         id: 1,
+        number: null,
         name: 'Alice',
         political_party_id: 99,
         political_party: 'ABC',
@@ -96,6 +98,7 @@ describe('Candidate routes', () => {
     const createdCandidate = {
       id: 42,
       name: 'Bob',
+      number: 123,
       politicalPartyId: 1,
       politicalParty: { id: 1, acronym: 'MDB' },
       electionId: 10,
@@ -116,13 +119,14 @@ describe('Candidate routes', () => {
     const response = await request(app)
       .post('/api/v1/candidates')
       .set('Authorization', `Bearer ${buildToken()}`)
-      .send({ name: 'Bob', office_id: 5, election_id: 10, political_party_id: 1, city_id: 12345 });
+      .send({ name: 'Bob', number: 123, office_id: 5, election_id: 10, political_party_id: 1, city_id: 12345 });
 
     expect(response.status).toBe(201);
     expect(prismaMock.office.findUnique).toHaveBeenCalledWith({ where: { id: 5 } });
     expect(prismaMock.candidate.create).toHaveBeenCalled();
     expect(response.body).toMatchObject({
       id: 42,
+      number: 123,
       office_id: 5,
       office: 'Vereador',
       election_id: 10,
@@ -143,7 +147,7 @@ describe('Candidate routes', () => {
     const response = await request(app)
       .post('/api/v1/candidates')
       .set('Authorization', `Bearer ${buildToken()}`)
-      .send({ name: 'Bob', office_id: 5, election_id: 10, city_id: 12345, state_code: 99 });
+      .send({ name: 'Bob', number: 123, office_id: 5, election_id: 10, city_id: 12345, state_code: 99 });
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'state_code informado não corresponde à cidade.' });

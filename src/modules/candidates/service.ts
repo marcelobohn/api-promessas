@@ -23,7 +23,7 @@ export const listCandidates = async (filters: CandidateQuery) => {
   if (typeof filters.city_id === 'number' && !Number.isNaN(filters.city_id)) where.cityId = filters.city_id;
   const cacheKey = `candidates:${JSON.stringify(where)}`;
   const cached = await getCache<any[]>(cacheKey);
-  let candidates;
+  let candidates: any[];
   if (cached) {
     candidates = cached;
   } else {
@@ -44,7 +44,7 @@ export const listCandidates = async (filters: CandidateQuery) => {
 };
 
 export const createNewCandidate = async (input: CreateCandidateInput) => {
-  const { name, political_party_id, election_id, office_id, state_code, city_id } = input;
+  const { name, number, political_party_id, election_id, office_id, state_code, city_id } = input;
 
   let electionIdValue: number | null = null;
   if (typeof election_id !== 'undefined' && election_id !== null) {
@@ -122,6 +122,7 @@ export const createNewCandidate = async (input: CreateCandidateInput) => {
     name: name!,
     politicalPartyId: politicalPartyIdValue,
     electionId: electionIdValue,
+    number: typeof number === 'number' ? number : null,
     officeId: office.id,
     stateCode: stateCodeValue,
     cityId: cityIdValue,
