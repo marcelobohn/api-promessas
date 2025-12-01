@@ -5,6 +5,7 @@ import fs from 'fs';
 import YAML from 'yaml';
 import swaggerUi from 'swagger-ui-express';
 import cors from 'cors';
+import prisma from './db';
 import candidateRoutes from './modules/candidates/routes';
 import promiseRoutes from './modules/promises/routes';
 import electionRoutes from './modules/elections/routes';
@@ -43,8 +44,38 @@ app.use('/api/v1/states', stateRoutes);
 app.use('/api/v1/cities', cityRoutes);
 app.use('/api/v1/auth', authRoutes);
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Servidor da API de Promessas rodando na porta ${port}`);
+});
+
+const shutdown = (signal: NodeJS.Signals) => {
+  console.log(`Received ${signal}. Closing server...`);
+  const forceTimeoutMs = Number(process.env.SHUTDOWN_TIMEOUT_MS ?? 10000);
+  const timeout = setTimeout(() => {
+    console.error('Shutdown timed out, forcing exit.');
+    process.exit(1);
+  }, forceTimeoutMs);
+
+  server.close(async (err) => {
+    if (err) {
+      console.error('Error closing server:', err);
+      clearTimeout(timeout);
+      process.exit(1);
+    }
+
+    try {
+      await prisma.$disconnect();
+    } catch (error) {
+      console.error('Error disconnecting Prisma:', error);
+    } finally {
+      clearTimeout(timeout);
+      process.exit(0);
+    }
+  });
+};
+
+['SIGTERM', 'SIGINT'].forEach((sig) => {
+  process.on(sig as NodeJS.Signals, shutdown);
 });
 
 export default app;

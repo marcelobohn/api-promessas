@@ -10,26 +10,39 @@ const redis = new Redis(redisUrl);
 export default redis;
 
 export const getCache = async <T>(key: string): Promise<T | null> => {
-  const raw = await redis.get(key);
-  if (!raw) return null;
   try {
-    return JSON.parse(raw) as T;
+    const raw = await redis.get(key);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return null;
+    }
   } catch (err) {
+    console.warn('Cache get failed for key', key, err);
     return null;
   }
 };
 
 export const setCache = async (key: string, value: unknown, ttlSeconds = 300) => {
-  const raw = JSON.stringify(value);
-  if (ttlSeconds > 0) {
-    await redis.set(key, raw, 'EX', ttlSeconds);
-  } else {
-    await redis.set(key, raw);
+  try {
+    const raw = JSON.stringify(value);
+    if (ttlSeconds > 0) {
+      await redis.set(key, raw, 'EX', ttlSeconds);
+    } else {
+      await redis.set(key, raw);
+    }
+  } catch (err) {
+    console.warn('Cache set failed for key', key, err);
   }
 };
 
 export const delCache = async (key: string) => {
-  await redis.del(key);
+  try {
+    await redis.del(key);
+  } catch (err) {
+    console.warn('Cache delete failed for key', key, err);
+  }
 };
 
 export const delByPattern = async (pattern: string) => {
